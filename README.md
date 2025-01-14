@@ -1,6 +1,6 @@
-# Water Fillin System
+# Water Filling System
 
-This project is a water filling system that provides an admin interface for managing operators and an operator interface for performing specific tasks. The application prompts for a password upon startup, allowing access to either the admin or operator functionalities based on the credentials provided.
+This project is a water filling system that provides interfaces for operators and administrators. The operator interface is used to perform specific tasks such as filling trucks with water, while the admin interface is used to manage operator accounts and trucks.
 
 ## Project Structure
 
@@ -15,12 +15,26 @@ water-fillin-system
 └── README.md                    # Documentation for the project
 ```
 
+## Features
+
+- Operator interface for performing water filling tasks
+- Admin interface for managing operators and trucks
+- MQTT communication for real-time updates
+- Barcode scanning for quick truck selection
+
+## Requirements
+
+- Python 3.x
+- PyQt6
+- paho-mqtt
+
 ## Installation
 
 1. Clone the repository:
-   ```
-   git clone <repository-url>
-   cd water-fillin-system
+
+   ```sh
+   git clone https://github.com/Abdomohamed950/filling_system.git
+   cd filling_system
    ```
 
 2. Install the required dependencies:
@@ -36,15 +50,6 @@ water-fillin-system
    ```
 
 2. Enter the admin password to access the admin interface or the operator password to access the operator interface.
-
-## Features
-
-- Admin Interface:
-  - Add or remove operators.
-  - Manage operator accounts.
-
-- Operator Interface:
-  - Perform tasks specific to operators.
 
 ## Contributing
 
