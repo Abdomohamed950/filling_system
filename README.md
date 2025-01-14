@@ -5,14 +5,20 @@ This project is a water filling system that provides interfaces for operators an
 ## Project Structure
 
 ```
-water-fillin-system
-├── src
-│   ├── admin_interface.py      # Contains AdminInterface class for admin functionalities
-│   ├── operator_interface.py    # Contains OperatorInterface class for operator functionalities
-│   ├── main.py                  # Entry point of the application
-│   └── utils.py                 # Utility functions for password validation and operator management
-├── requirements.txt             # Lists dependencies required for the project
-└── README.md                    # Documentation for the project
+water-filling-system-v2/
+├── esp_code/
+│   ├── file1.ino
+│   ├── file2.ino
+│   └── ...
+├── src/
+│   ├── admin_interface.py
+│   ├── database.py
+│   ├── main.py
+│   ├── operator_interface.py
+│   └── utils.py
+├── requirements.txt
+├── setup_environment.bat
+└── README.md
 ```
 
 ## Features
@@ -21,6 +27,7 @@ water-fillin-system
 - Admin interface for managing operators and trucks
 - MQTT communication for real-time updates
 - Barcode scanning for quick truck selection
+- ESP code for hardware integration
 
 ## Requirements
 
