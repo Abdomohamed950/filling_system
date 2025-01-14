@@ -8,18 +8,18 @@ ADMIN_PASSWORD = "admin"
 def authenticate(password, window):
     if password == ADMIN_PASSWORD:
         print("Admin password entered correctly.")
-        window.close()  # إغلاق نافذة تسجيل الدخول
+        window.close() 
         print("Creating AdminInterface instance.")
-        window.admin_interface = AdminInterface()  # إنشاء واجهة المدير وتخزينها في النافذة
+        window.admin_interface = AdminInterface()  
         print("Showing AdminInterface.")
-        window.admin_interface.show()  # عرض واجهة المدير
+        window.admin_interface.show()  
     else:
         operator_name = get_operator_name_by_password(password)
         if operator_name:
             print(f"Operator {operator_name} authenticated successfully.")
-            window.close()  # إغلاق نافذة تسجيل الدخول
-            window.operator_interface = OperatorInterface(operator_name)  # إنشاء واجهة المشغل وتخزينها في النافذة
-            window.operator_interface.show()  # عرض واجهة المشغل
+            window.close()  
+            window.operator_interface = OperatorInterface(operator_name)  
+            window.operator_interface.show()  
         else:
             print("Invalid password entered.")
             QMessageBox.critical(window, "Error", "Invalid password. Please try again.")

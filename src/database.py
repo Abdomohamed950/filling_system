@@ -104,12 +104,7 @@ def remove_truck(truck_name):
     return "Truck removed successfully."
 
 def list_trucks():
-    conn = create_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT name FROM trucks")
-    trucks = cursor.fetchall()
-    conn.close()
-    return [truck[0] for truck in trucks]
+    return ["truck_1", "truck_2", "truck_3", "truck_4", "truck_5"]
 
 def log_action(operator_name, truck_name, quantity):
     conn = create_connection()

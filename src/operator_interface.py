@@ -1,9 +1,11 @@
 from PyQt6 import QtCore, QtWidgets
 import paho.mqtt.client as mqtt
 from database import log_action 
+from database import list_trucks  # تأكد من استيراد الدالة list_trucks
 
 class OperatorInterface(QtWidgets.QWidget):
-    value=0
+    value = 0
+
     def __init__(self, operator_name):
         super().__init__()
         self.operator_name = operator_name
@@ -12,18 +14,16 @@ class OperatorInterface(QtWidgets.QWidget):
         self.client = mqtt.Client()
         self.client.on_message = self.on_message
         self.client.connect(self.broker_address, self.port)
-        self.client.subscribe("#")  # الاشتراك في جميع المواضيع
+        self.client.subscribe("#")
         self.client.loop_start()
-        
 
-        self.mode = "manual"  # الوضع الافتراضي (يدوي)
+        self.mode = "manual"
         self.init_ui()
 
     def init_ui(self):
         self.setWindowTitle(f"Water Filling System - Operator: {self.operator_name}")
         self.setGeometry(100, 100, 400, 400)
 
-        # اختيار الوضع (يدوي أو باركود)
         manual_radio = QtWidgets.QRadioButton("Manual")
         manual_radio.setChecked(True)
         manual_radio.toggled.connect(lambda: self.change_mode("manual"))
@@ -31,34 +31,27 @@ class OperatorInterface(QtWidgets.QWidget):
         barcode_radio = QtWidgets.QRadioButton("Barcode")
         barcode_radio.toggled.connect(lambda: self.change_mode("barcode"))
 
-        # اختيار الشاحنة
         self.truck_combo = QtWidgets.QComboBox()
-        self.truck_combo.addItems(["truck_1", "truck_2", "truck_3"])  # أسماء الشاحنات
+        self.truck_combo.addItems(list_trucks())  # استخدام الدالة list_trucks للحصول على قائمة الشاحنات
         self.truck_combo.currentIndexChanged.connect(self.on_truck_change)
 
-        # عرض مقياس التدفق
         self.flow_meter_label = QtWidgets.QLabel(f"Current Flow Meter: {self.value} L")
 
-        # إدخال الكمية
         self.quantity_entry = QtWidgets.QLineEdit()
         self.quantity_entry.setPlaceholderText("Enter quantity:")
 
-        # إدخال الباركود
         self.barcode_entry = QtWidgets.QLineEdit()
         self.barcode_entry.setPlaceholderText("Scan barcode here:")
         self.barcode_entry.setEnabled(False)
         self.barcode_entry.returnPressed.connect(self.process_barcode)
 
-        # زر التحكم (بدء/إيقاف)
         self.state_button = QtWidgets.QPushButton("Start")
         self.state_button.setCheckable(True)
         self.state_button.clicked.connect(self.toggle_state)
 
-        # شريط التقدم
         self.progress_bar = QtWidgets.QProgressBar(self)
         self.progress_bar.setRange(0, 100)
 
-        # تخطيط الواجهة
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(manual_radio)
         layout.addWidget(barcode_radio)
@@ -97,7 +90,7 @@ class OperatorInterface(QtWidgets.QWidget):
                 self.progress_bar.setValue(self.value) 
             except ValueError:
                 print("Invalid flowmeter value received:", message)
-                
+
         elif topic.endswith("/state"):
             try:
                 if message == 'stop':
@@ -134,10 +127,9 @@ class OperatorInterface(QtWidgets.QWidget):
         self.client.publish(f"{truck_id}/state", state)
 
     def process_barcode(self):
-        """معالجة الباركود المدخل"""
+        """معالجة الباركود المدخل"""        
         barcode = self.barcode_entry.text()
         if barcode:
-            # منطق معالجة الباركود (كمثال: استخراج truck_id والكمية)
             print(f"Barcode scanned: {barcode}")
             truck_id, quantity = barcode.split("-")  # مثال على تقسيم الباركود
             self.truck_combo.setCurrentText(truck_id)

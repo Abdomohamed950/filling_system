@@ -162,7 +162,7 @@ class AdminInterface(QtWidgets.QWidget):
     def auto_refresh(self):
         self.list_operators_action()
         self.list_trucks_action()
-        QtCore.QTimer.singleShot(5000, self.auto_refresh)  # تحديث كل 5 ثوانٍ
+        QtCore.QTimer.singleShot(5000, self.auto_refresh)  
 
 if __name__ == "__main__":
     import sys
