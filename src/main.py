@@ -3,7 +3,7 @@ from admin_interface import AdminInterface
 from operator_interface import OperatorInterface
 from database import get_operator_name_by_password
 
-ADMIN_PASSWORD = "admin"    //ok
+ADMIN_PASSWORD = "admin"
 
 def authenticate(password, window):
     if password == ADMIN_PASSWORD:
