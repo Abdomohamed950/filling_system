@@ -1,7 +1,7 @@
 from PyQt6 import QtCore, QtWidgets
 import paho.mqtt.client as mqtt
 from database import log_action 
-from database import list_trucks  # تأكد من استيراد الدالة list_trucks
+from database import list_trucks 
 
 class OperatorInterface(QtWidgets.QWidget):
     value = 0
@@ -32,7 +32,7 @@ class OperatorInterface(QtWidgets.QWidget):
         barcode_radio.toggled.connect(lambda: self.change_mode("barcode"))
 
         self.truck_combo = QtWidgets.QComboBox()
-        self.truck_combo.addItems(list_trucks())  # استخدام الدالة list_trucks للحصول على قائمة الشاحنات
+        self.truck_combo.addItems(list_trucks()) 
         self.truck_combo.currentIndexChanged.connect(self.on_truck_change)
 
         self.flow_meter_label = QtWidgets.QLabel(f"Current Flow Meter: {self.value} L")
@@ -120,8 +120,8 @@ class OperatorInterface(QtWidgets.QWidget):
             if quantity:
                 self.client.publish(f"{truck_id}/quantity", quantity)
                 print(f"Quantity {quantity} sent to {truck_id}")
-                self.progress_bar.setMaximum(int(quantity))  # تحديد الحد الأقصى لشريط التقدم
-                self.progress_bar.setValue(0)  # إعادة تعيين شريط التقدم
+                self.progress_bar.setMaximum(int(quantity)) 
+                self.progress_bar.setValue(0) 
             else:
                 print("Please enter a valid quantity")
         self.client.publish(f"{truck_id}/state", state)
@@ -131,7 +131,7 @@ class OperatorInterface(QtWidgets.QWidget):
         barcode = self.barcode_entry.text()
         if barcode:
             print(f"Barcode scanned: {barcode}")
-            truck_id, quantity = barcode.split("-")  # مثال على تقسيم الباركود
+            truck_id, quantity = barcode.split("-") 
             self.truck_combo.setCurrentText(truck_id)
             self.quantity_entry.setText(quantity)
             self.send_quantity()

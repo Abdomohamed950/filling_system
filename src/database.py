@@ -15,7 +15,9 @@ def create_table():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS trucks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE
+            name TEXT NOT NULL UNIQUE,
+            baudrate INTEGER,
+            mode TEXT
         )
     ''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS logs (
@@ -87,10 +89,10 @@ def is_password_unique(operator_password):
     conn.close()
     return result is None
 
-def add_truck(truck_name):
+def add_truck(truck_name, baudrate, mode):
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO trucks (name) VALUES (?)", (truck_name,))
+    cursor.execute("INSERT INTO trucks (name, baudrate, mode) VALUES (?, ?, ?)", (truck_name, baudrate, mode))
     conn.commit()
     conn.close()
     return "Truck added successfully."
@@ -104,7 +106,20 @@ def remove_truck(truck_name):
     return "Truck removed successfully."
 
 def list_trucks():
-    return ["truck_1", "truck_2", "truck_3", "truck_4", "truck_5"]
+        conn = create_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM trucks")
+        trucks = cursor.fetchall()
+        conn.close()
+        return [truck[0] for truck in trucks]
+
+def get_trucks():
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT name, baudrate, mode FROM trucks')
+    trucks = cursor.fetchall()
+    conn.close()
+    return trucks
 
 def log_action(operator_name, truck_name, quantity):
     conn = create_connection()

@@ -1,10 +1,10 @@
 from PyQt6 import QtCore, QtWidgets
-from database import create_table, add_operator, remove_operator, list_operators, is_password_unique, add_truck, remove_truck, list_trucks, get_logs
+from database import create_table, add_operator, remove_operator, list_operators, is_password_unique, add_truck, remove_truck, get_trucks, get_logs
 
 class AdminInterface(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        create_table()  # إنشاء الجدول في قاعدة البيانات
+        create_table()  
         self.init_ui()
 
     def init_ui(self):
@@ -55,6 +55,12 @@ class AdminInterface(QtWidgets.QWidget):
         add_truck_name_label = QtWidgets.QLabel("Truck Name:", self)
         self.add_truck_name_entry = QtWidgets.QLineEdit(self)
 
+        add_truck_baudrate_label = QtWidgets.QLabel("Baudrate:", self)
+        self.add_truck_baudrate_entry = QtWidgets.QLineEdit(self)
+
+        add_truck_mode_label = QtWidgets.QLabel("Mode:", self)
+        self.add_truck_mode_entry = QtWidgets.QLineEdit(self)
+
         add_truck_button = QtWidgets.QPushButton("Add Truck", self)
         add_truck_button.clicked.connect(self.add_truck_action)
 
@@ -65,8 +71,15 @@ class AdminInterface(QtWidgets.QWidget):
 
         truck_layout.addWidget(add_truck_name_label)
         truck_layout.addWidget(self.add_truck_name_entry)
+        truck_layout.addWidget(add_truck_baudrate_label)
+        truck_layout.addWidget(self.add_truck_baudrate_entry)
+        truck_layout.addWidget(add_truck_mode_label)
+        truck_layout.addWidget(self.add_truck_mode_entry)
         truck_layout.addWidget(add_truck_button)
-        truck_layout.addWidget(self.trucks_listbox)
+        self.trucks_table = QtWidgets.QTableWidget()
+        self.trucks_table.setColumnCount(3)
+        self.trucks_table.setHorizontalHeaderLabels(["Truck Name", "Baudrate", "Mode"])
+        truck_layout.addWidget(self.trucks_table)
         truck_layout.addWidget(remove_truck_button)
         truck_frame.setLayout(truck_layout)
 
@@ -95,12 +108,11 @@ class AdminInterface(QtWidgets.QWidget):
         self.auto_refresh()
 
     def center(self):
-        screen = QtWidgets.QApplication.primaryScreen()
-        screen_geometry = screen.availableGeometry()
-        center_point = screen_geometry.center()
         frame_geometry = self.frameGeometry()
-        frame_geometry.moveCenter(center_point)
-        self.move(frame_geometry.topLeft())
+        screen_center = QtWidgets.QApplication.primaryScreen().availableGeometry().center()
+        frame_geometry.moveCenter(screen_center)
+        self.move(frame_geometry.center())
+
 
     def add_operator_action(self):
         operator_name = self.add_operator_name_entry.text()
@@ -117,6 +129,7 @@ class AdminInterface(QtWidgets.QWidget):
             result = remove_operator(selected_operator.text())
             QtWidgets.QMessageBox.information(self, "Result", result)
             self.list_operators_action()
+           
 
     def list_operators_action(self):
         operators = list_operators()
@@ -129,28 +142,31 @@ class AdminInterface(QtWidgets.QWidget):
 
     def add_truck_action(self):
         truck_name = self.add_truck_name_entry.text()
-        if truck_name:
-            result = add_truck(truck_name)
+        baudrate = self.add_truck_baudrate_entry.text()
+        mode = self.add_truck_mode_entry.text()
+        if truck_name and baudrate and mode:
+            result = add_truck(truck_name, baudrate, mode)
             QtWidgets.QMessageBox.information(self, "Result", result)
         else:
-            QtWidgets.QMessageBox.warning(self, "Error", "Truck name is required.")
+            QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
         self.list_trucks_action()
 
     def remove_selected_truck_action(self):
-        selected_truck = self.trucks_listbox.currentItem()
-        if selected_truck:
-            result = remove_truck(selected_truck.text())
+        selected_row = self.trucks_table.currentRow()
+        if selected_row != -1:
+            truck_name = self.trucks_table.item(selected_row, 0).text()
+            result = remove_truck(truck_name)
             QtWidgets.QMessageBox.information(self, "Result", result)
             self.list_trucks_action()
+        else:
+            QtWidgets.QMessageBox.warning(self, "Error", "No truck selected.")
 
     def list_trucks_action(self):
-        trucks = list_trucks()
-        self.trucks_listbox.clear()
-        if isinstance(trucks, str):
-            self.trucks_listbox.addItem(trucks)
-        else:
-            for truck in trucks:
-                self.trucks_listbox.addItem(truck)
+        trucks = get_trucks()
+        self.trucks_table.setRowCount(len(trucks))
+        for row_idx, truck in enumerate(trucks):
+            for col_idx, data in enumerate(truck):
+                self.trucks_table.setItem(row_idx, col_idx, QtWidgets.QTableWidgetItem(str(data)))
 
     def load_history(self):
         logs = get_logs()
