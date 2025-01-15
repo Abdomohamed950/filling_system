@@ -45,9 +45,11 @@ class OperatorInterface(QtWidgets.QWidget):
         self.barcode_entry.setEnabled(False)
         self.barcode_entry.returnPressed.connect(self.process_barcode)
 
-        self.state_button = QtWidgets.QPushButton("Start")
-        self.state_button.setCheckable(True)
-        self.state_button.clicked.connect(self.toggle_state)
+        self.start_button = QtWidgets.QPushButton("Start")
+        self.start_button.clicked.connect(self.start_action)
+
+        self.stop_button = QtWidgets.QPushButton("Stop")
+        self.stop_button.clicked.connect(self.stop_action)
 
         self.progress_bar = QtWidgets.QProgressBar(self)
         self.progress_bar.setRange(0, 100)
@@ -60,7 +62,8 @@ class OperatorInterface(QtWidgets.QWidget):
         layout.addWidget(self.quantity_entry)
         layout.addWidget(self.barcode_entry)        
         layout.addWidget(self.progress_bar)
-        layout.addWidget(self.state_button)
+        layout.addWidget(self.start_button)
+        layout.addWidget(self.stop_button)
         self.setLayout(layout)
 
     def change_mode(self, mode):
@@ -79,52 +82,52 @@ class OperatorInterface(QtWidgets.QWidget):
     def on_truck_change(self):        
         self.client.publish(f"{self.truck_combo.currentText()}/refresh", "refresh")        
 
-
     def on_message(self, client, userdata, msg):
         topic = msg.topic
         message = msg.payload.decode()
-        
+        truck = topic.split('/')
         if topic.endswith("/flowmeter"):
             try:
-                self.value = int(message)                                
-                self.progress_bar.setValue(self.value) 
+                if truck[0] == self.truck_combo.currentText():
+                    self.value = int(message)                                
+                    self.progress_bar.setValue(self.value) 
             except ValueError:
                 print("Invalid flowmeter value received:", message)
 
         elif topic.endswith("/state"):
             try:
-                if message == 'stop':
-                    log_action(self.operator_name, self.truck_combo.currentText(), self.value)
+                if message == 'stop':                    
+                    log_action(self.operator_name, truck[0], self.value)
                     print(f"Logged action: Operator: {self.operator_name}, Truck: {self.truck_combo.currentText()}, Quantity: {self.value}")
-                    self.state_button.setChecked(False)
                     self.client.publish(f"{self.truck_combo.currentText()}/refresh", "refresh")
             except ValueError:
                 print("Invalid flowmeter value received:", message)
 
         elif topic.endswith("/refresh"):
-            if message != "refresh":
-                self.value = int(message)
-                self.flow_meter_label.setText(f"Current Flow Meter: {message} L")
+            if truck[0] == self.truck_combo.currentText():
+                if message != "refresh":
+                    self.value = int(message)
+                    self.flow_meter_label.setText(f"Current Flow Meter: {message} L")                                                  
+                    self.progress_bar.setValue(self.value)
 
-
-            
-
-    def toggle_state(self):
-        """تبديل حالة الشاحنة بين بدء وإيقاف"""
+    def start_action(self):
+        """بدء عملية التعبئة"""
         truck_id = self.truck_combo.currentText()
         quantity = self.quantity_entry.text()
 
-        state = "start" if self.state_button.isChecked() else "stop"
+        if quantity:
+            self.client.publish(f"{truck_id}/quantity", quantity)
+            print(f"Quantity {quantity} sent to {truck_id}")
+            self.progress_bar.setMaximum(int(quantity)) 
+            self.progress_bar.setValue(0) 
+            self.client.publish(f"{truck_id}/state", "start")
+        else:
+            print("Please enter a valid quantity")
 
-        if state == "start":
-            if quantity:
-                self.client.publish(f"{truck_id}/quantity", quantity)
-                print(f"Quantity {quantity} sent to {truck_id}")
-                self.progress_bar.setMaximum(int(quantity)) 
-                self.progress_bar.setValue(0) 
-            else:
-                print("Please enter a valid quantity")
-        self.client.publish(f"{truck_id}/state", state)
+    def stop_action(self):
+        """إيقاف عملية التعبئة"""
+        truck_id = self.truck_combo.currentText()
+        self.client.publish(f"{truck_id}/state", "stop")
 
     def process_barcode(self):
         """معالجة الباركود المدخل"""        

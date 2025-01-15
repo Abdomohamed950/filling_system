@@ -16,7 +16,7 @@ class AdminInterface(QtWidgets.QWidget):
 
         # Tab for managing operators
         operator_frame = QtWidgets.QWidget()
-        operator_layout = QtWidgets.QVBoxLayout()
+        operator_layout = QtWidgets.QVBoxLayout(operator_frame)
 
         add_operator_name_label = QtWidgets.QLabel("Operator Name:", self)
         self.add_operator_name_entry = QtWidgets.QLineEdit(self)
@@ -46,7 +46,7 @@ class AdminInterface(QtWidgets.QWidget):
 
         # Tab for adding and removing trucks
         truck_frame = QtWidgets.QWidget()
-        truck_layout = QtWidgets.QVBoxLayout()
+        truck_layout = QtWidgets.QVBoxLayout(truck_frame)
 
         add_truck_name_label = QtWidgets.QLabel("Truck Name:", self)
         self.add_truck_name_entry = QtWidgets.QLineEdit(self)
@@ -78,12 +78,11 @@ class AdminInterface(QtWidgets.QWidget):
         truck_layout.addWidget(self.trucks_table)
         truck_layout.addWidget(remove_truck_button)
 
-
         truck_frame.setLayout(truck_layout)
 
         # Tab for history
         history_frame = QtWidgets.QWidget()
-        history_layout = QtWidgets.QVBoxLayout()
+        history_layout = QtWidgets.QVBoxLayout(history_frame)
 
         self.history_table = QtWidgets.QTableWidget()
         self.history_table.setColumnCount(4)
@@ -95,9 +94,10 @@ class AdminInterface(QtWidgets.QWidget):
 
         self.load_history()
 
+        notebook.addTab(operator_frame, "Manage Operators")
         notebook.addTab(truck_frame, "Manage Trucks")
 
-        main_layout = QtWidgets.QVBoxLayout()
+        main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.addWidget(notebook)
         self.setLayout(main_layout)
 
