@@ -121,6 +121,22 @@ def get_trucks():
     conn.close()
     return trucks
 
+def update_truck(truck_name, baudrate, mode):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE trucks SET baudrate = ?, mode = ? WHERE name = ?", (baudrate, mode, truck_name))
+    conn.commit()
+    conn.close()
+    return "Truck updated successfully."
+
+def is_truck_name_unique(truck_name):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM trucks WHERE name=?", (truck_name,))
+    result = cursor.fetchone()
+    conn.close()
+    return result is None
+
 def log_action(operator_name, truck_name, quantity):
     conn = create_connection()
     cursor = conn.cursor()
