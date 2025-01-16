@@ -1,5 +1,5 @@
 from PyQt6 import QtCore, QtWidgets
-from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value  # Import necessary functions
+from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action  # Import necessary functions
 import threading
 import time
 import paho.mqtt.client as mqtt  # Import the MQTT client
@@ -73,7 +73,7 @@ class OperatorInterface(QtWidgets.QWidget):
             progress_bar.setObjectName("progress_bar")
 
             start_button = QtWidgets.QPushButton("Start")
-            start_button.clicked.connect(lambda _, pn=port_name, aqe=add_quantity_entry, rql=required_quantity_label: self.start_filling(pn, aqe, rql))
+            start_button.clicked.connect(lambda _, pn=port_name, aqe=add_quantity_entry, rne=receipt_number_entry, tne=truck_number_entry, rql=required_quantity_label: self.start_filling(pn, aqe, rne, tne, rql))
 
             stop_button = QtWidgets.QPushButton("Stop")
             stop_button.clicked.connect(lambda _, pn=port_name: self.stop_filling(pn))
@@ -103,12 +103,16 @@ class OperatorInterface(QtWidgets.QWidget):
             self.barcode_entry.setEnabled(True)
             self.barcode_entry.setFocus()
 
-    def start_filling(self, port_name, add_quantity_entry, required_quantity_label):
+    def start_filling(self, port_name, add_quantity_entry ,receipt_number_entry, truck_number_entry, required_quantity_label):
         quantity = add_quantity_entry.text()
+        truck_number = truck_number_entry.text()
+        receipt_number = receipt_number_entry.text()
         required_quantity_label.setText(f"Required Quantity: {quantity}")
         self.mqtt_client.publish(f"{port_name}/quantity", quantity)
         self.mqtt_client.publish(f"{port_name}/state", "start")
         self.flowmeter_values[port_name] = get_flowmeter_value(port_name)
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        log_action("station_name", port_name, self.operator_name, truck_number, receipt_number, quantity, None, None, timestamp, None)
 
     def stop_filling(self, port_name):
         self.mqtt_client.publish(f"{port_name}/state", "stop")
@@ -171,6 +175,7 @@ class OperatorInterface(QtWidgets.QWidget):
             store_port_data_from_mqtt(port_name, None, state)
             if state == "stop":
                 pass
+                
 
 if __name__ == "__main__":
     import sys
