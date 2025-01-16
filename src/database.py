@@ -13,19 +13,31 @@ def create_table():
                         password TEXT NOT NULL UNIQUE
                       )''')
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS trucks (
+        CREATE TABLE IF NOT EXISTS ports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE,
-            baudrate INTEGER,
             mode TEXT
         )
     ''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS logs (
                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                 station_name TEXT,
+                 port_number INTEGER,
                  operator_name TEXT,
-                 truck_name TEXT,
-                 quantity INTEGER,
-                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+                 truck_number TEXT,
+                 receipt_number TEXT,
+                 required_quantity INTEGER,
+                 actual_quantity INTEGER,
+                 flow_meter_reading REAL,
+                 entry_time DATETIME,
+                 logout_time DATETIME)''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS port_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            port_name TEXT NOT NULL,
+            current_flowmeter TEXT NOT NULL,
+            state TEXT NOT NULL )
+    ''')
     conn.commit()
     conn.close()
 
@@ -89,66 +101,93 @@ def is_password_unique(operator_password):
     conn.close()
     return result is None
 
-def add_truck(truck_name, baudrate, mode):
+def add_port(port_name, mode):
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO trucks (name, baudrate, mode) VALUES (?, ?, ?)", (truck_name, baudrate, mode))
+    cursor.execute("INSERT INTO ports (name, mode) VALUES (?, ?)", (port_name, mode))
     conn.commit()
     conn.close()
-    return "Truck added successfully."
+    return "port added successfully."
 
-def remove_truck(truck_name):
+def remove_port(port_name):
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM trucks WHERE name=?", (truck_name,))
+    cursor.execute("DELETE FROM ports WHERE name=?", (port_name,))
     conn.commit()
     conn.close()
-    return "Truck removed successfully."
+    return "port removed successfully."
 
-def list_trucks():
+def list_ports():
         conn = create_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT name FROM trucks")
-        trucks = cursor.fetchall()
+        cursor.execute("SELECT name FROM ports")
+        ports = cursor.fetchall()
         conn.close()
-        return [truck[0] for truck in trucks]
+        return [port[0] for port in ports]
 
-def get_trucks():
+def get_ports():
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT name, baudrate, mode FROM trucks')
-    trucks = cursor.fetchall()
+    cursor.execute('SELECT name, mode FROM ports')
+    ports = cursor.fetchall()
     conn.close()
-    return trucks
+    return ports
 
-def update_truck(truck_name, baudrate, mode):
+def update_port(port_name, mode):
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE trucks SET baudrate = ?, mode = ? WHERE name = ?", (baudrate, mode, truck_name))
+    cursor.execute("UPDATE ports SET mode = ? WHERE name = ?", (mode, port_name))
     conn.commit()
     conn.close()
-    return "Truck updated successfully."
+    return "port updated successfully."
 
-def is_truck_name_unique(truck_name):
+def is_port_name_unique(port_name):
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM trucks WHERE name=?", (truck_name,))
+    cursor.execute("SELECT * FROM ports WHERE name=?", (port_name,))
     result = cursor.fetchone()
     conn.close()
     return result is None
 
-def log_action(operator_name, truck_name, quantity):
+def log_action(station_name, port_number, operator_name, truck_number, receipt_number, required_quantity, actual_quantity, flow_meter_reading, entry_time, logout_time):
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute('''INSERT INTO logs (operator_name, truck_name, quantity)
-                 VALUES (?, ?, ?)''', (operator_name, truck_name, quantity))
+    cursor.execute('''INSERT INTO logs (station_name, port_number, operator_name, truck_number, receipt_number, required_quantity, actual_quantity, flow_meter_reading, entry_time, logout_time)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (station_name, port_number, operator_name, truck_number, receipt_number, required_quantity, actual_quantity, flow_meter_reading, entry_time, logout_time))
     conn.commit()
     conn.close()
 
 def get_logs():
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT operator_name, truck_name, quantity, timestamp FROM logs')
+    cursor.execute('SELECT station_name, port_number, operator_name, truck_number, receipt_number, required_quantity, actual_quantity, flow_meter_reading, entry_time, logout_time FROM logs')
     logs = cursor.fetchall()
     conn.close()
     return logs
+
+def store_port_data_from_mqtt(port_name, flow_meter_value, state):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM port_data WHERE port_name = ?", (port_name,))
+    result = cursor.fetchone()
+    if result:
+        if flow_meter_value is not None:
+            cursor.execute("UPDATE port_data SET current_flowmeter = ? WHERE port_name = ?", (flow_meter_value, port_name))
+        if state is not None:
+            cursor.execute("UPDATE port_data SET state = ? WHERE port_name = ?", (state, port_name))
+    else:
+        cursor.execute("INSERT INTO port_data (port_name, current_flowmeter, state) VALUES (?, ?, ?)", 
+                       (port_name, flow_meter_value if flow_meter_value is not None else "", 
+                        state if state is not None else ""))
+    conn.commit()
+    conn.close()
+
+def get_flowmeter_value(port_name):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT current_flowmeter FROM port_data WHERE port_name = ?", (port_name,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else None
+
+

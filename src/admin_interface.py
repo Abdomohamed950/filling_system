@@ -1,5 +1,5 @@
 from PyQt6 import QtCore, QtWidgets
-from database import create_table, add_operator, remove_operator, list_operators, is_password_unique, add_truck, remove_truck, get_trucks, get_logs, update_truck, is_truck_name_unique
+from database import create_table, add_operator, remove_operator, list_operators, is_password_unique, add_port, remove_port, get_ports, get_logs, update_port, is_port_name_unique
 
 class AdminInterface(QtWidgets.QWidget):
     def __init__(self):
@@ -9,7 +9,7 @@ class AdminInterface(QtWidgets.QWidget):
 
     def init_ui(self):
         self.setWindowTitle("Admin Interface")
-        self.setGeometry(100, 100, 500, 400)
+        self.showMaximized()  # Make the window fullscreen
         self.center()
 
         notebook = QtWidgets.QTabWidget(self)
@@ -44,49 +44,49 @@ class AdminInterface(QtWidgets.QWidget):
 
         notebook.addTab(operator_frame, "Manage Operators")
 
-        # Tab for adding and removing trucks
-        truck_frame = QtWidgets.QWidget()
-        truck_layout = QtWidgets.QVBoxLayout(truck_frame)
+        # Tab for adding and removing ports
+        port_frame = QtWidgets.QWidget()
+        port_layout = QtWidgets.QVBoxLayout(port_frame)
 
-        add_truck_name_label = QtWidgets.QLabel("Truck Name:", self)
-        self.add_truck_name_entry = QtWidgets.QLineEdit(self)
+        add_port_name_label = QtWidgets.QLabel("Port Name:", self)
+        self.add_port_name_entry = QtWidgets.QLineEdit(self)
 
-        add_truck_baudrate_label = QtWidgets.QLabel("Baudrate:", self)
-        self.add_truck_baudrate_entry = QtWidgets.QLineEdit(self)
+        add_port_mode_label = QtWidgets.QLabel("Mode:", self)
+        self.add_port_mode_entry = QtWidgets.QLineEdit(self)
 
-        add_truck_mode_label = QtWidgets.QLabel("Mode:", self)
-        self.add_truck_mode_entry = QtWidgets.QLineEdit(self)
+        self.add_port_button = QtWidgets.QPushButton("Add Port", self)
+        self.add_port_button.clicked.connect(self.add_port_action)
 
-        self.add_truck_button = QtWidgets.QPushButton("Add Truck", self)
-        self.add_truck_button.clicked.connect(self.add_or_update_truck_action)
+        self.update_port_button = QtWidgets.QPushButton("Update Port", self)
+        self.update_port_button.clicked.connect(self.update_port_action)
 
-        self.trucks_listbox = QtWidgets.QListWidget(self)
+        self.ports_listbox = QtWidgets.QListWidget(self)
 
-        remove_truck_button = QtWidgets.QPushButton("Remove Selected Truck", self)
-        remove_truck_button.clicked.connect(self.remove_selected_truck_action)
+        remove_port_button = QtWidgets.QPushButton("Remove Selected Port", self)
+        remove_port_button.clicked.connect(self.remove_selected_port_action)
 
-        truck_layout.addWidget(add_truck_name_label)
-        truck_layout.addWidget(self.add_truck_name_entry)
-        truck_layout.addWidget(add_truck_baudrate_label)
-        truck_layout.addWidget(self.add_truck_baudrate_entry)
-        truck_layout.addWidget(add_truck_mode_label)
-        truck_layout.addWidget(self.add_truck_mode_entry)
-        truck_layout.addWidget(self.add_truck_button)
-        self.trucks_table = QtWidgets.QTableWidget()
-        self.trucks_table.setColumnCount(3)
-        self.trucks_table.setHorizontalHeaderLabels(["Truck Name", "Baudrate", "Mode"])
-        truck_layout.addWidget(self.trucks_table)
-        truck_layout.addWidget(remove_truck_button)
+        port_layout.addWidget(add_port_name_label)
+        port_layout.addWidget(self.add_port_name_entry)
+        port_layout.addWidget(add_port_mode_label)
+        port_layout.addWidget(self.add_port_mode_entry)
+        port_layout.addWidget(self.add_port_button)
+        port_layout.addWidget(self.update_port_button)
+        self.ports_table = QtWidgets.QTableWidget()
+        self.ports_table.setColumnCount(2)
+        self.ports_table.setHorizontalHeaderLabels(["Port Name", "Mode"])
+        port_layout.addWidget(self.ports_table)
+        port_layout.addWidget(remove_port_button)
 
-        truck_frame.setLayout(truck_layout)
+        port_frame.setLayout(port_layout)
 
         # Tab for history
         history_frame = QtWidgets.QWidget()
         history_layout = QtWidgets.QVBoxLayout(history_frame)
 
         self.history_table = QtWidgets.QTableWidget()
-        self.history_table.setColumnCount(4)
-        self.history_table.setHorizontalHeaderLabels(["Operator Name", "Truck Name", "Quantity", "Timestamp"])
+        self.history_table.setColumnCount(10)
+        self.history_table.setHorizontalHeaderLabels(["Station Name", "Port Number", "Operator Name", "Truck Number", "Receipt Number", "Required Quantity", "Actual Quantity", "Flow Meter Reading", "Entry Time", "Logout Time"])
+        self.history_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)  # Adjust column widths
         history_layout.addWidget(self.history_table)
 
         history_frame.setLayout(history_layout)
@@ -95,7 +95,7 @@ class AdminInterface(QtWidgets.QWidget):
         self.load_history()
 
         notebook.addTab(operator_frame, "Manage Operators")
-        notebook.addTab(truck_frame, "Manage Trucks")
+        notebook.addTab(port_frame, "Manage ports")
 
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.addWidget(notebook)
@@ -108,7 +108,13 @@ class AdminInterface(QtWidgets.QWidget):
         screen_center = QtWidgets.QApplication.primaryScreen().availableGeometry().center()
         frame_geometry.moveCenter(screen_center)
         self.move(frame_geometry.center())
+        self.showMaximized()  # Ensure the window is maximized
 
+    def clear_fields(self):
+        self.add_operator_name_entry.clear()
+        self.add_operator_password_entry.clear()
+        self.add_port_name_entry.clear()
+        self.add_port_mode_entry.clear()
 
     def add_operator_action(self):
         operator_name = self.add_operator_name_entry.text()
@@ -117,6 +123,7 @@ class AdminInterface(QtWidgets.QWidget):
             result = add_operator(operator_name, operator_password)
             QtWidgets.QMessageBox.information(self, "Result", result)
             self.list_operators_action()
+            self.clear_fields()
         else:
             QtWidgets.QMessageBox.warning(self, "Error", "Both fields are required.")
 
@@ -126,6 +133,7 @@ class AdminInterface(QtWidgets.QWidget):
             result = remove_operator(selected_operator.text())
             QtWidgets.QMessageBox.information(self, "Result", result)
             self.list_operators_action()
+            self.clear_fields()
         else:
             QtWidgets.QMessageBox.warning(self, "Error", "No operator selected.")
 
@@ -138,69 +146,61 @@ class AdminInterface(QtWidgets.QWidget):
             for operator in operators:
                 self.operators_listbox.addItem(operator)
 
-    def add_or_update_truck_action(self):
-        truck_name = self.add_truck_name_entry.text()
-        baudrate = self.add_truck_baudrate_entry.text()
-        mode = self.add_truck_mode_entry.text()
-        if truck_name and baudrate and mode:
-            if self.add_truck_button.text() == "Add Truck":
-                if is_truck_name_unique(truck_name):
-                    result = add_truck(truck_name, baudrate, mode)
-                else:
-                    QtWidgets.QMessageBox.warning(self, "Error", f"Truck '{truck_name}' already exists.")
-                    return
+    def add_port_action(self):
+        port_name = self.add_port_name_entry.text()
+        mode = self.add_port_mode_entry.text()
+        if port_name and mode:
+            if is_port_name_unique(port_name):
+                result = add_port(port_name, mode)
+                QtWidgets.QMessageBox.information(self, "Result", result)
+                self.list_ports_action()
+                self.clear_fields()
             else:
-                result = update_truck(truck_name, baudrate, mode)
-            QtWidgets.QMessageBox.information(self, "Result", result)
-            self.list_trucks_action()
-            self.add_truck_button.setText("Add Truck")
+                QtWidgets.QMessageBox.warning(self, "Error", f"Port '{port_name}' already exists.")
         else:
             QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
 
-    def remove_selected_truck_action(self):
-        selected_row = self.trucks_table.currentRow()
+    def update_port_action(self):
+        selected_row = self.ports_table.currentRow()
         if selected_row != -1:
-            truck_name = self.trucks_table.item(selected_row, 0).text()
-            result = remove_truck(truck_name)
-            QtWidgets.QMessageBox.information(self, "Result", result)
-            self.list_trucks_action()
-            self.add_truck_button.setText("Add Truck")
-
-        else:
-            QtWidgets.QMessageBox.warning(self, "Error", "No truck selected.")
-
-    def list_trucks_action(self):
-        trucks = get_trucks()
-        self.trucks_table.setRowCount(len(trucks))
-        for row_idx, truck in enumerate(trucks):
-            for col_idx, data in enumerate(truck):
-                self.trucks_table.setItem(row_idx, col_idx, QtWidgets.QTableWidgetItem(str(data)))
-        self.trucks_table.itemSelectionChanged.connect(self.fill_truck_details)
-
-    def fill_truck_details(self):
-        selected_row = self.trucks_table.currentRow()
-        if selected_row != -1:
-            self.add_truck_name_entry.setText(self.trucks_table.item(selected_row, 0).text())
-            self.add_truck_baudrate_entry.setText(self.trucks_table.item(selected_row, 1).text())
-            self.add_truck_mode_entry.setText(self.trucks_table.item(selected_row, 2).text())
-            self.add_truck_button.setText("Update Truck")
-        else:
-            self.add_truck_button.setText("Add Truck")
-
-    def update_truck_action(self):
-        selected_row = self.trucks_table.currentRow()
-        if selected_row != -1:
-            truck_name = self.trucks_table.item(selected_row, 0).text()
-            baudrate = self.add_truck_baudrate_entry.text()
-            mode = self.add_truck_mode_entry.text()
-            if baudrate and mode:
-                result = update_truck(truck_name, baudrate, mode)
+            port_name = self.ports_table.item(selected_row, 0).text()
+            mode = self.add_port_mode_entry.text()
+            if mode:
+                result = update_port(port_name, mode)
                 QtWidgets.QMessageBox.information(self, "Result", result)
-                self.list_trucks_action()
+                self.list_ports_action()
+                self.clear_fields()
             else:
-                QtWidgets.QMessageBox.warning(self, "Error", "Baudrate and Mode fields are required.")
+                QtWidgets.QMessageBox.warning(self, "Error", "Mode field is required.")
         else:
-            QtWidgets.QMessageBox.warning(self, "Error", "No truck selected.")
+            QtWidgets.QMessageBox.warning(self, "Error", "No port selected.")
+
+    def remove_selected_port_action(self):
+        selected_row = self.ports_table.currentRow()
+        if selected_row != -1:
+            port_name = self.ports_table.item(selected_row, 0).text()
+            result = remove_port(port_name)
+            QtWidgets.QMessageBox.information(self, "Result", result)
+            self.list_ports_action()
+            self.clear_fields()
+        else:
+            QtWidgets.QMessageBox.warning(self, "Error", "No port selected.")
+
+    def list_ports_action(self):
+        ports = get_ports()
+        self.ports_table.setRowCount(len(ports))
+        for row_idx, port in enumerate(ports):
+            for col_idx, data in enumerate(port):
+                self.ports_table.setItem(row_idx, col_idx, QtWidgets.QTableWidgetItem(str(data)))
+        self.ports_table.itemSelectionChanged.connect(self.fill_port_details)
+
+    def fill_port_details(self):
+        selected_row = self.ports_table.currentRow()
+        if selected_row != -1:
+            self.add_port_name_entry.setText(self.ports_table.item(selected_row, 0).text())
+            self.add_port_mode_entry.setText(self.ports_table.item(selected_row, 1).text())
+        else:
+            self.clear_fields()
 
     def load_history(self):
         logs = get_logs()
@@ -211,7 +211,7 @@ class AdminInterface(QtWidgets.QWidget):
 
     def auto_refresh(self):
         self.list_operators_action()
-        self.list_trucks_action()
+        self.list_ports_action()
         QtCore.QTimer.singleShot(5000, self.auto_refresh)  
 
 if __name__ == "__main__":
@@ -220,3 +220,4 @@ if __name__ == "__main__":
     admin_interface = AdminInterface()
     admin_interface.show()
     sys.exit(app.exec())
+
