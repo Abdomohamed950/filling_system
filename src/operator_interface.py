@@ -160,7 +160,7 @@ class OperatorInterface(QtWidgets.QWidget):
                     self.update_flowmeter_label(port_name, flow_meter_value)
                     if port_name in self.flowmeter_values:
                         initial_value = self.flowmeter_values[port_name]
-                        if initial_value != "":
+                        if initial_value is not None and initial_value != "":
                             actual_quantity = float(flow_meter_value) - float(initial_value)
                             self.update_actual_quantity_label(port_name, actual_quantity)
             time.sleep(0.2)  # Update every 0.2 seconds
