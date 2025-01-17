@@ -190,4 +190,15 @@ def get_flowmeter_value(port_name):
     conn.close()
     return result[0] if result else None
 
+def update_log_on_stop(port_name, actual_quantity, flow_meter_reading, logout_time):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE logs
+        SET actual_quantity = ?, flow_meter_reading = ?, logout_time = ?
+        WHERE port_number = ? AND actual_quantity IS NULL
+    ''', (actual_quantity, flow_meter_reading, logout_time, port_name))
+    conn.commit()
+    conn.close()
+
 

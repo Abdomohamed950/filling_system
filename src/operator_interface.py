@@ -1,8 +1,9 @@
 from PyQt6 import QtCore, QtWidgets
-from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action  # Import necessary functions
+from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action, update_log_on_stop  # Import necessary functions
 import threading
 import time
 import paho.mqtt.client as mqtt  # Import the MQTT client
+from login_window import LoginWindow  # Import LoginWindow from the new file
 
 class OperatorInterface(QtWidgets.QWidget):
     value = 0
@@ -19,7 +20,7 @@ class OperatorInterface(QtWidgets.QWidget):
 
     def init_ui(self):
         self.setWindowTitle(f"Water Filling System - Operator: {self.operator_name}")
-        self.setGeometry(100, 100, 800, 600)  # Increase the window size
+        self.showFullScreen()  # Make the window full screen
 
         manual_radio = QtWidgets.QRadioButton("Manual")
         manual_radio.setChecked(True)
@@ -41,7 +42,16 @@ class OperatorInterface(QtWidgets.QWidget):
         scroll_area.setWidget(scroll_content)
         layout.addWidget(scroll_area)
 
+        logout_button = QtWidgets.QPushButton("Logout", self)
+        logout_button.clicked.connect(self.logout_action)
+        layout.addWidget(logout_button)
+
         self.setLayout(layout)
+
+    def logout_action(self):
+        self.close()
+        self.login_window = LoginWindow()
+        self.login_window.show()
 
     def load_ports(self):
         ports = get_ports()
@@ -116,6 +126,18 @@ class OperatorInterface(QtWidgets.QWidget):
 
     def stop_filling(self, port_name):
         self.mqtt_client.publish(f"{port_name}/state", "stop")
+        actual_quantity = self.get_actual_quantity(port_name)
+        flow_meter_value = get_flowmeter_value(port_name)
+        logout_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        update_log_on_stop(port_name, actual_quantity, flow_meter_value, logout_time)
+
+    def get_actual_quantity(self, port_name):
+        if port_name in self.flowmeter_values:
+            initial_value = self.flowmeter_values[port_name]
+            current_value = get_flowmeter_value(port_name)
+            if initial_value != "" and current_value != "":
+                return float(current_value) - float(initial_value)
+        return 0
 
     def start_mqtt_thread(self):
         self.mqtt_client = mqtt.Client()
@@ -134,12 +156,13 @@ class OperatorInterface(QtWidgets.QWidget):
             ports = get_ports()
             for port_name, _ in ports:
                 flow_meter_value = get_flowmeter_value(port_name)
-                if flow_meter_value is not None:
+                if flow_meter_value is not None and flow_meter_value != "":
                     self.update_flowmeter_label(port_name, flow_meter_value)
                     if port_name in self.flowmeter_values:
                         initial_value = self.flowmeter_values[port_name]
-                        actual_quantity = float(flow_meter_value) - float(initial_value)
-                        self.update_actual_quantity_label(port_name, actual_quantity)
+                        if initial_value != "":
+                            actual_quantity = float(flow_meter_value) - float(initial_value)
+                            self.update_actual_quantity_label(port_name, actual_quantity)
             time.sleep(0.2)  # Update every 0.2 seconds
 
     def update_flowmeter_label(self, port_name, flow_meter_value):
@@ -174,8 +197,10 @@ class OperatorInterface(QtWidgets.QWidget):
             state = payload
             store_port_data_from_mqtt(port_name, None, state)
             if state == "stop":
-                pass
-                
+                actual_quantity = self.get_actual_quantity(port_name)
+                flow_meter_value = get_flowmeter_value(port_name)
+                logout_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                update_log_on_stop(port_name, actual_quantity, flow_meter_value, logout_time)
 
 if __name__ == "__main__":
     import sys

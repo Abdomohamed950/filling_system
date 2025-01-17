@@ -1,5 +1,6 @@
 from PyQt6 import QtCore, QtWidgets
 from database import create_table, add_operator, remove_operator, list_operators, is_password_unique, add_port, remove_port, get_ports, get_logs, update_port, is_port_name_unique
+from login_window import LoginWindow  # Import LoginWindow from the new file
 
 class AdminInterface(QtWidgets.QWidget):
     def __init__(self):
@@ -52,7 +53,8 @@ class AdminInterface(QtWidgets.QWidget):
         self.add_port_name_entry = QtWidgets.QLineEdit(self)
 
         add_port_mode_label = QtWidgets.QLabel("Mode:", self)
-        self.add_port_mode_entry = QtWidgets.QLineEdit(self)
+        self.add_port_mode_entry = QtWidgets.QComboBox(self)
+        self.add_port_mode_entry.addItems(["modbus", "milli ampere", "pulse"])
 
         self.add_port_button = QtWidgets.QPushButton("Add Port", self)
         self.add_port_button.clicked.connect(self.add_port_action)
@@ -101,6 +103,10 @@ class AdminInterface(QtWidgets.QWidget):
         main_layout.addWidget(notebook)
         self.setLayout(main_layout)
 
+        logout_button = QtWidgets.QPushButton("Logout", self)
+        logout_button.clicked.connect(self.logout_action)
+        main_layout.addWidget(logout_button)
+
         self.auto_refresh()
 
     def center(self):
@@ -114,7 +120,7 @@ class AdminInterface(QtWidgets.QWidget):
         self.add_operator_name_entry.clear()
         self.add_operator_password_entry.clear()
         self.add_port_name_entry.clear()
-        self.add_port_mode_entry.clear()
+        self.add_port_mode_entry.setCurrentIndex(0)
 
     def add_operator_action(self):
         operator_name = self.add_operator_name_entry.text()
@@ -148,7 +154,7 @@ class AdminInterface(QtWidgets.QWidget):
 
     def add_port_action(self):
         port_name = self.add_port_name_entry.text()
-        mode = self.add_port_mode_entry.text()
+        mode = self.add_port_mode_entry.currentText()
         if port_name and mode:
             if is_port_name_unique(port_name):
                 result = add_port(port_name, mode)
@@ -164,7 +170,7 @@ class AdminInterface(QtWidgets.QWidget):
         selected_row = self.ports_table.currentRow()
         if selected_row != -1:
             port_name = self.ports_table.item(selected_row, 0).text()
-            mode = self.add_port_mode_entry.text()
+            mode = self.add_port_mode_entry.currentText()
             if mode:
                 result = update_port(port_name, mode)
                 QtWidgets.QMessageBox.information(self, "Result", result)
@@ -198,7 +204,7 @@ class AdminInterface(QtWidgets.QWidget):
         selected_row = self.ports_table.currentRow()
         if selected_row != -1:
             self.add_port_name_entry.setText(self.ports_table.item(selected_row, 0).text())
-            self.add_port_mode_entry.setText(self.ports_table.item(selected_row, 1).text())
+            self.add_port_mode_entry.setCurrentText(self.ports_table.item(selected_row, 1).text())
         else:
             self.clear_fields()
 
@@ -213,6 +219,11 @@ class AdminInterface(QtWidgets.QWidget):
         self.list_operators_action()
         self.list_ports_action()
         QtCore.QTimer.singleShot(5000, self.auto_refresh)  
+
+    def logout_action(self):
+        self.close()
+        self.login_window = LoginWindow()
+        self.login_window.show()
 
 if __name__ == "__main__":
     import sys
