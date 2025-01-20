@@ -10,13 +10,15 @@ def create_table():
     cursor.execute('''CREATE TABLE IF NOT EXISTS operators (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         name TEXT NOT NULL UNIQUE,
-                        password TEXT NOT NULL UNIQUE
+                        password TEXT NOT NULL UNIQUE,
+                        op_id TEXT NOT NULL UNIQUE
                       )''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS ports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE,
-            mode TEXT
+            mode TEXT,
+            config TEXT
         )
     ''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS logs (
@@ -41,11 +43,11 @@ def create_table():
     conn.commit()
     conn.close()
 
-def add_operator(operator_name, operator_password):
+def add_operator(operator_name, operator_password, opertator_ID):
     conn = create_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO operators (name, password) VALUES (?, ?)", (operator_name, operator_password))
+        cursor.execute("INSERT INTO operators (name, password, op_id) VALUES (?, ?, ?)", (operator_name, operator_password, opertator_ID))
         conn.commit()
         return "Operator added successfully."
     except sqlite3.IntegrityError:
@@ -64,10 +66,10 @@ def remove_operator(operator_name):
 def list_operators():
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT name FROM operators")
+    cursor.execute("SELECT name, password, op_id FROM operators")
     operators = cursor.fetchall()
     conn.close()
-    return [operator[0] for operator in operators]
+    return operators  # Return full operator details
 
 def get_operator_password(name):
     conn = create_connection()
@@ -101,10 +103,10 @@ def is_password_unique(operator_password):
     conn.close()
     return result is None
 
-def add_port(port_name, mode):
+def add_port(port_name, mode, config):
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO ports (name, mode) VALUES (?, ?)", (port_name, mode))
+    cursor.execute("INSERT INTO ports (name, mode, config) VALUES (?, ?, ?)", (port_name, mode, config))
     conn.commit()
     conn.close()
     return "port added successfully."
@@ -128,15 +130,16 @@ def list_ports():
 def get_ports():
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT name, mode FROM ports')
+    cursor.execute('SELECT name, mode, config FROM ports')
     ports = cursor.fetchall()
     conn.close()
     return ports
 
-def update_port(port_name, mode):
+
+def update_port(port_name, mode, config):
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE ports SET mode = ? WHERE name = ?", (mode, port_name))
+    cursor.execute("UPDATE ports SET mode = ?, config = ? WHERE name = ?", (mode, config, port_name))
     conn.commit()
     conn.close()
     return "port updated successfully."
@@ -200,5 +203,21 @@ def update_log_on_stop(port_name, actual_quantity, flow_meter_reading, logout_ti
     ''', (actual_quantity, flow_meter_reading, logout_time, port_name))
     conn.commit()
     conn.close()
+
+def update_operator(old_name, old_id, new_name, new_id, new_password):
+    conn = create_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            UPDATE operators
+            SET name = ?, op_id = ?, password = ?
+            WHERE name = ? AND op_id = ?
+        ''', (new_name, new_id, new_password, old_name, old_id))
+        conn.commit()
+        return "Operator updated successfully."
+    except sqlite3.IntegrityError:
+        return f"Operator '{new_name}' already exists."
+    finally:
+        conn.close()
 
 
