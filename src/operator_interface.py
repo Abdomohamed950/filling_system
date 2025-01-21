@@ -128,15 +128,14 @@ class OperatorInterface(QtWidgets.QWidget):
             self.barcode_entry.setFocus()
 
     def start_filling(self, port_name, add_quantity_entry ,receipt_number_entry, truck_number_entry):
-        if(add_quantity_entry.text() and truck_number_entry.text() ):
-        #    if ( (port_name not in self.status.keys()) or ( self.status[port_name] != "filling" ) ):
+        if(add_quantity_entry.text() and truck_number_entry.text() ):        
             if( not self.is_disabled(port_name)):            
                 quantity = add_quantity_entry.text()
                 truck_number = truck_number_entry.text()
                 receipt_number = receipt_number_entry.text()                
                 self.flowmeter_values[port_name] = get_flowmeter_value(port_name)
                 timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-                log_action("station_name", port_name, self.operator_name, truck_number, receipt_number, quantity, None, None, timestamp, None)                
+                log_action("station_name", port_name, self.operator_name, truck_number, receipt_number, quantity, None, None, timestamp, None)
                 self.mqtt_client.publish(f"{port_name}/quantity", quantity)
                 self.mqtt_client.publish(f"{port_name}/state", "start")
             else :

@@ -19,82 +19,34 @@ class AdminInterface(QtWidgets.QWidget):
         operator_frame = QtWidgets.QWidget()
         operator_layout = QtWidgets.QVBoxLayout(operator_frame)
 
-        add_operator_name_label = QtWidgets.QLabel("Operator Name:", self)
-        self.add_operator_name_entry = QtWidgets.QLineEdit(self)
+        scroll_area_operators = QtWidgets.QScrollArea()
+        scroll_area_operators.setWidgetResizable(True)
+        scroll_content_operators = QtWidgets.QWidget()
+        self.operator_cards_layout = QtWidgets.QGridLayout(scroll_content_operators)
+        self.operator_cards_layout.setSpacing(30)  # Add padding between cards
+        scroll_area_operators.setWidget(scroll_content_operators)
+        operator_layout.addWidget(scroll_area_operators)
 
-        add_operator_ID_label = QtWidgets.QLabel("Operator ID:", self)
-        self.add_operator_ID_entry = QtWidgets.QLineEdit(self)
-
-        add_operator_password_label = QtWidgets.QLabel("Operator Password:", self)
-        self.add_operator_password_entry = QtWidgets.QLineEdit(self)
-        self.add_operator_password_entry.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
-
-        add_operator_button = QtWidgets.QPushButton("Add Operator", self)
-        add_operator_button.clicked.connect(self.add_operator_action)
-
-        self.operators_table = QtWidgets.QListWidget(self)
-
-        remove_operator_button = QtWidgets.QPushButton("Remove Selected Operator", self)
-        remove_operator_button.clicked.connect(self.remove_selected_operator_action)
-
-        update_operator_button = QtWidgets.QPushButton("Update Selected Operator", self)
-        update_operator_button.clicked.connect(self.update_selected_operator_action)
-
-        operator_layout.addWidget(add_operator_name_label)
-        operator_layout.addWidget(self.add_operator_name_entry)
-        operator_layout.addWidget(add_operator_ID_label)
-        operator_layout.addWidget(self.add_operator_ID_entry)
-        operator_layout.addWidget(add_operator_password_label)
-        operator_layout.addWidget(self.add_operator_password_entry)
-        operator_layout.addWidget(add_operator_button)
-        self.operator_table = QtWidgets.QTableWidget()
-        self.operator_table.setColumnCount(2)
-        self.operator_table.setHorizontalHeaderLabels(["Name", "ID"])
-        operator_layout.addWidget(self.operator_table)
-        operator_layout.addWidget(update_operator_button)
-        operator_layout.addWidget(remove_operator_button)
         operator_frame.setLayout(operator_layout)
 
         notebook.addTab(operator_frame, "Manage Operators")
 
         # Tab for managing ports
-
         port_frame = QtWidgets.QWidget()
         port_layout = QtWidgets.QVBoxLayout(port_frame)
 
-        add_port_name_label = QtWidgets.QLabel("Port Name:")
-        self.add_port_name_entry = QtWidgets.QLineEdit()
+        scroll_area_ports = QtWidgets.QScrollArea()
+        scroll_area_ports.setWidgetResizable(True)
+        scroll_content_ports = QtWidgets.QWidget()
+        self.port_cards_layout = QtWidgets.QGridLayout(scroll_content_ports)
+        self.port_cards_layout.setSpacing(30)  # Add padding between cards
+        scroll_area_ports.setWidget(scroll_content_ports)
+        port_layout.addWidget(scroll_area_ports)
 
-        add_port_mode_label = QtWidgets.QLabel("Mode:")
-        self.add_port_mode_entry = QtWidgets.QComboBox()
-        self.add_port_mode_entry.addItems(["modbus", "milli ampere", "pulse"])
-        self.add_port_mode_entry.currentIndexChanged.connect(self.update_port_settings)
+        port_frame.setLayout(port_layout)
 
-        # Dynamic settings layout
-        self.dynamic_settings_layout = QtWidgets.QVBoxLayout()
+        notebook.addTab(port_frame, "Manage Ports")
 
-        self.add_port_button = QtWidgets.QPushButton("Add Port")
-        self.add_port_button.clicked.connect(self.add_port_action)
-
-        self.ports_table = QtWidgets.QTableWidget()
-        self.ports_table.setColumnCount(3)
-        self.ports_table.setHorizontalHeaderLabels(["Port Name", "Mode", "Configuration"])
-        self.ports_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
-
-        port_layout.addWidget(add_port_name_label)
-        port_layout.addWidget(self.add_port_name_entry)
-        port_layout.addWidget(add_port_mode_label)
-        port_layout.addWidget(self.add_port_mode_entry)
-        port_layout.addLayout(self.dynamic_settings_layout)
-        port_layout.addWidget(self.add_port_button)
-        port_layout.addWidget(self.ports_table)
-
-        port_frame.setLayout(port_layout)        
-
-        self.update_port_settings()
-        remove_port_button = QtWidgets.QPushButton("Remove Selected Port", self)
-        remove_port_button.clicked.connect(self.remove_selected_port_action)
-        port_layout.addWidget(remove_port_button)
         # Tab for history
         history_frame = QtWidgets.QWidget()
         history_layout = QtWidgets.QVBoxLayout(history_frame)
@@ -211,78 +163,173 @@ class AdminInterface(QtWidgets.QWidget):
         self.add_port_name_entry.clear()
         self.add_port_mode_entry.setCurrentIndex(0)
 
-    def add_operator_action(self):
-        operator_name = self.add_operator_name_entry.text()
-        operator_ID = self.add_operator_ID_entry.text()
-        operator_password = self.add_operator_password_entry.text()
-        if operator_name and operator_password and operator_ID:
-            result = add_operator(operator_name, operator_password, operator_ID)
+    def add_operator_action(self, dialog, operator_name, operator_id, operator_password):
+        if operator_name and operator_password and operator_id:
+            result = add_operator(operator_name, operator_password, operator_id)
             QtWidgets.QMessageBox.information(self, "Result", result)
             self.list_operators_action()
-            self.clear_fields()
+            dialog.accept()
         else:
-            QtWidgets.QMessageBox.warning(self, "Error", "Both fields are required.")
+            QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
 
-    def remove_selected_operator_action(self):        
-        selected_row = self.operator_table.currentRow()
-        if selected_row != -1:
-            operator_name = self.operator_table.item(selected_row, 0).text()
-
-            result = remove_operator(operator_name)
-            QtWidgets.QMessageBox.information(self, "Result", result)
-            self.list_operators_action()
-            self.clear_fields()
-        else:
-            QtWidgets.QMessageBox.warning(self, "Error", "No operator selected.")
+    def remove_operator_action(self, operator_name):
+        result = remove_operator(operator_name)
+        QtWidgets.QMessageBox.information(self, "Result", result)
+        self.list_operators_action()
+        self.clear_fields()
 
     def list_operators_action(self):
         operators = list_operators()
-        self.operator_table.setRowCount(len(operators))
-        for row_idx, operator in enumerate(operators):
-            self.operator_table.setItem(row_idx, 0, QtWidgets.QTableWidgetItem(operator[0]))
-            self.operator_table.setItem(row_idx, 1, QtWidgets.QTableWidgetItem(operator[2]))
+        for i in reversed(range(self.operator_cards_layout.count())):
+            self.operator_cards_layout.itemAt(i).widget().deleteLater()
 
-    def add_port_action(self):
-        port_name = self.add_port_name_entry.text()
-        mode = self.add_port_mode_entry.currentText()
+        for idx, operator in enumerate(operators):
+            operator_name, operator_id = operator[0], operator[2]
+            card = QtWidgets.QGroupBox(operator_name)
+            card.setFixedSize(300, 300)  # Set fixed size for each card
+            card_layout = QtWidgets.QVBoxLayout()
+
+            id_label = QtWidgets.QLabel(f"ID: {operator_id}")
+
+            edit_button = QtWidgets.QPushButton("Edit")
+            edit_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileDialogContentsView))
+            edit_button.clicked.connect(lambda _, on=operator_name, oid=operator_id: self.edit_operator_action(on, oid))
+
+            remove_button = QtWidgets.QPushButton("Remove")
+            remove_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_TrashIcon))
+            remove_button.clicked.connect(lambda _, on=operator_name: self.remove_operator_action(on))
+
+            button_layout = QtWidgets.QHBoxLayout()
+            button_layout.addWidget(edit_button)
+            button_layout.addWidget(remove_button)
+
+            card_layout.addWidget(id_label)
+            card_layout.addLayout(button_layout)
+
+            card.setLayout(card_layout)
+            self.operator_cards_layout.addWidget(card, idx // 5, idx % 5)  # Arrange cards in a grid with 5 cards per row
+
+        # Add a card for adding a new operator
+        add_card = QtWidgets.QGroupBox("Add New Operator")
+        add_card.setFixedSize(300, 300)  # Set fixed size for the add card
+        add_card_layout = QtWidgets.QVBoxLayout()
+        add_button = QtWidgets.QPushButton("Add Operator")
+        add_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileDialogNewFolder))
+        add_button.clicked.connect(self.show_add_operator_dialog)
+        add_card_layout.addWidget(add_button)
+        add_card.setLayout(add_card_layout)
+        self.operator_cards_layout.addWidget(add_card, len(operators) // 5, len(operators) % 5)  # Place the add card in the next available slot
+
+    def show_add_operator_dialog(self):
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle("Add New Operator")
+
+        layout = QtWidgets.QVBoxLayout(dialog)
+
+        operator_name_label = QtWidgets.QLabel("Operator Name:")
+        operator_name_entry = QtWidgets.QLineEdit()
+
+        operator_id_label = QtWidgets.QLabel("Operator ID:")
+        operator_id_entry = QtWidgets.QLineEdit()
+
+        operator_password_label = QtWidgets.QLabel("Operator Password:")
+        operator_password_entry = QtWidgets.QLineEdit()
+        operator_password_entry.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
+
+        save_button = QtWidgets.QPushButton("Save")
+        save_button.clicked.connect(lambda: self.add_operator_action(dialog, operator_name_entry.text(), operator_id_entry.text(), operator_password_entry.text()))
+
+        cancel_button = QtWidgets.QPushButton("Cancel")
+        cancel_button.clicked.connect(dialog.reject)
+
+        layout.addWidget(operator_name_label)
+        layout.addWidget(operator_name_entry)
+        layout.addWidget(operator_id_label)
+        layout.addWidget(operator_id_entry)
+        layout.addWidget(operator_password_label)
+        layout.addWidget(operator_password_entry)
+        layout.addWidget(save_button)
+        layout.addWidget(cancel_button)
+
+        dialog.setLayout(layout)
+        dialog.exec()
+
+    def edit_operator_action(self, operator_name, operator_id):
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle(f"Edit Operator: {operator_name}")
+
+        layout = QtWidgets.QVBoxLayout(dialog)
+
+        operator_name_label = QtWidgets.QLabel("Operator Name:")
+        operator_name_entry = QtWidgets.QLineEdit(operator_name)
+
+        operator_id_label = QtWidgets.QLabel("Operator ID:")
+        operator_id_entry = QtWidgets.QLineEdit(operator_id)
+
+        operator_password_label = QtWidgets.QLabel("Operator Password:")
+        operator_password_entry = QtWidgets.QLineEdit()
+        operator_password_entry.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
+
+        save_button = QtWidgets.QPushButton("Save")
+        save_button.clicked.connect(lambda: self.update_operator_action(dialog, operator_name, operator_id, operator_name_entry.text(), operator_id_entry.text(), operator_password_entry.text()))
+
+        cancel_button = QtWidgets.QPushButton("Cancel")
+        cancel_button.clicked.connect(dialog.reject)
+
+        layout.addWidget(operator_name_label)
+        layout.addWidget(operator_name_entry)
+        layout.addWidget(operator_id_label)
+        layout.addWidget(operator_id_entry)
+        layout.addWidget(operator_password_label)
+        layout.addWidget(operator_password_entry)
+        layout.addWidget(save_button)
+        layout.addWidget(cancel_button)
+
+        dialog.setLayout(layout)
+        dialog.exec()
+
+    def update_operator_action(self, dialog, old_name, old_id, new_name, new_id, new_password):
+        if new_name and new_id and new_password:
+            result = update_operator(old_name, old_id, new_name, new_id, new_password)
+            QtWidgets.QMessageBox.information(self, "Result", result)
+            self.list_operators_action()
+            dialog.accept()
+        else:
+            QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
+
+    def add_port_action(self, dialog, port_name, mode, config):
         if mode == "modbus":
-            baudrate = self.baudrate_list.currentText()
-            frame = self.frame_list.currentText()
-            endian = self.endian_list.currentText()
-            slave_address = self.slave_address_entry.text()
-            register_address = self.register_address_entry.text()
+            baudrate, frame, endian, slave_address, register_address = config.split(',')
             if port_name and baudrate and frame and endian and slave_address and register_address:
                 if is_port_name_unique(port_name):
-                    result = add_port(port_name, mode,config=f"{baudrate},{frame},{endian},{slave_address},{register_address}")
+                    result = add_port(port_name, mode, config)
                     QtWidgets.QMessageBox.information(self, "Result", result)
                     self.list_ports_action()
-                    self.clear_fields()
+                    dialog.accept()
                 else:
                     QtWidgets.QMessageBox.warning(self, "Error", f"Port '{port_name}' already exists.")
             else:
                 QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
         elif mode == "milli ampere":
-            min_value = self.min_entry.text()
-            max_value = self.max_entry.text()
-            resistor_value = self.resistor_value_entry.text()
+            min_value, max_value, resistor_value = config.split(',')
             if port_name and min_value and max_value and resistor_value:
                 if is_port_name_unique(port_name):
-                    result = add_port(port_name, mode, config=f"{min_value},{max_value},{resistor_value}")
+                    result = add_port(port_name, mode, config)
                     QtWidgets.QMessageBox.information(self, "Result", result)
                     self.list_ports_action()
-                    self.clear_fields()
+                    dialog.accept()
                 else:
                     QtWidgets.QMessageBox.warning(self, "Error", f"Port '{port_name}' already exists.")
             else:
                 QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
         elif mode == "pulse":
-            liter_per_pulse = self.liter_per_pulse_entry.text()
+            liter_per_pulse = config
             if port_name and liter_per_pulse:
                 if is_port_name_unique(port_name):
-                    result = add_port(port_name, mode, config=liter_per_pulse)
+                    result = add_port(port_name, mode, config)
                     QtWidgets.QMessageBox.information(self, "Result", result)
                     self.list_ports_action()
-                    self.clear_fields()
+                    dialog.accept()
                 else:
                     QtWidgets.QMessageBox.warning(self, "Error", f"Port '{port_name}' already exists.")
             else:
@@ -327,24 +374,195 @@ class AdminInterface(QtWidgets.QWidget):
                 else:
                     QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
 
-    def remove_selected_port_action(self):
-        selected_row = self.ports_table.currentRow()
-        if selected_row != -1:
-            port_name = self.ports_table.item(selected_row, 0).text()
-            result = remove_port(port_name)
-            QtWidgets.QMessageBox.information(self, "Result", result)
-            self.list_ports_action()
-            self.clear_fields()
-        else:
-            QtWidgets.QMessageBox.warning(self, "Error", "No port selected.")
-
     def list_ports_action(self):
         ports = get_ports()
-        self.ports_table.setRowCount(len(ports))
-        for row_idx, port in enumerate(ports):
-            for col_idx, data in enumerate(port):
-                self.ports_table.setItem(row_idx, col_idx, QtWidgets.QTableWidgetItem(str(data)))
-        self.ports_table.itemSelectionChanged.connect(self.fill_port_details)
+        for i in reversed(range(self.port_cards_layout.count())):
+            self.port_cards_layout.itemAt(i).widget().deleteLater()
+
+        for idx, port in enumerate(ports):
+            port_name, mode, config = port
+            card = QtWidgets.QGroupBox(port_name)
+            card.setFixedSize(300, 300)  # Set fixed size for each card
+            card_layout = QtWidgets.QVBoxLayout()
+
+            mode_label = QtWidgets.QLabel(f"Mode: {mode}")
+            config_label = QtWidgets.QLabel(f"Configuration: {config}")
+
+            edit_button = QtWidgets.QPushButton("Edit")
+            edit_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileDialogContentsView))
+            edit_button.clicked.connect(lambda _, pn=port_name, m=mode, c=config: self.edit_port_action(pn, m, c))
+
+            remove_button = QtWidgets.QPushButton("Remove")
+            remove_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_TrashIcon))
+            remove_button.clicked.connect(lambda _, pn=port_name: self.remove_port_action(pn))
+
+            button_layout = QtWidgets.QHBoxLayout()
+            button_layout.addWidget(edit_button)
+            button_layout.addWidget(remove_button)
+
+            card_layout.addWidget(mode_label)
+            card_layout.addWidget(config_label)
+            card_layout.addLayout(button_layout)
+
+            card.setLayout(card_layout)
+            self.port_cards_layout.addWidget(card, idx // 5, idx % 5)  # Arrange cards in a grid with 5 cards per row
+
+        # Add a card for adding a new port
+        add_card = QtWidgets.QGroupBox("Add New Port")
+        add_card.setFixedSize(300, 300)  # Set fixed size for the add card
+        add_card_layout = QtWidgets.QVBoxLayout()
+        add_button = QtWidgets.QPushButton("Add Port")
+        add_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileDialogNewFolder))
+        add_button.clicked.connect(self.show_add_port_dialog)
+        add_card_layout.addWidget(add_button)
+        add_card.setLayout(add_card_layout)
+        self.port_cards_layout.addWidget(add_card, len(ports) // 5, len(ports) % 5)  # Place the add card in the next available slot
+
+    def show_add_port_dialog(self):
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle("Add New Port")
+
+        layout = QtWidgets.QVBoxLayout(dialog)
+
+        port_name_label = QtWidgets.QLabel("Port Name:")
+        port_name_entry = QtWidgets.QLineEdit()
+
+        mode_label = QtWidgets.QLabel("Mode:")
+        mode_entry = QtWidgets.QComboBox()
+        mode_entry.addItems(["modbus", "milli ampere", "pulse"])
+        mode_entry.currentIndexChanged.connect(lambda: self.update_dialog_settings(dialog, mode_entry.currentText(), ""))
+
+        self.dialog_dynamic_settings_layout = QtWidgets.QVBoxLayout()
+
+        save_button = QtWidgets.QPushButton("Save")
+        save_button.clicked.connect(lambda: self.add_port_action(dialog, port_name_entry.text(), mode_entry.currentText(), self.get_dialog_config()))
+
+        cancel_button = QtWidgets.QPushButton("Cancel")
+        cancel_button.clicked.connect(dialog.reject)
+
+        layout.addWidget(port_name_label)
+        layout.addWidget(port_name_entry)
+        layout.addWidget(mode_label)
+        layout.addWidget(mode_entry)
+        layout.addLayout(self.dialog_dynamic_settings_layout)
+        layout.addWidget(save_button)
+        layout.addWidget(cancel_button)
+
+        dialog.setLayout(layout)
+        self.update_dialog_settings(dialog, mode_entry.currentText(), "")
+        dialog.exec()
+
+    def edit_port_action(self, port_name, mode, config):
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle(f"Edit Port: {port_name}")
+
+        layout = QtWidgets.QVBoxLayout(dialog)
+
+        port_name_label = QtWidgets.QLabel("Port Name:")
+        port_name_entry = QtWidgets.QLineEdit(port_name)
+        port_name_entry.setReadOnly(True)
+
+        mode_label = QtWidgets.QLabel("Mode:")
+        mode_entry = QtWidgets.QComboBox()
+        mode_entry.addItems(["modbus", "milli ampere", "pulse"])
+        mode_entry.setCurrentText(mode)
+        mode_entry.currentIndexChanged.connect(lambda: self.update_dialog_settings(dialog, mode_entry.currentText(), ""))
+
+        self.dialog_dynamic_settings_layout = QtWidgets.QVBoxLayout()
+
+        save_button = QtWidgets.QPushButton("Save")
+        save_button.clicked.connect(lambda: self.save_port_changes(dialog, port_name, mode_entry.currentText(), self.get_dialog_config()))
+
+        cancel_button = QtWidgets.QPushButton("Cancel")
+        cancel_button.clicked.connect(dialog.reject)
+
+        layout.addWidget(port_name_label)
+        layout.addWidget(port_name_entry)
+        layout.addWidget(mode_label)
+        layout.addWidget(mode_entry)
+        layout.addLayout(self.dialog_dynamic_settings_layout)
+        layout.addWidget(save_button)
+        layout.addWidget(cancel_button)
+
+        dialog.setLayout(layout)
+        self.update_dialog_settings(dialog, mode, config)
+        dialog.exec()
+
+    def update_dialog_settings(self, dialog, mode, config):
+        for i in reversed(range(self.dialog_dynamic_settings_layout.count())):
+            self.dialog_dynamic_settings_layout.itemAt(i).widget().deleteLater()
+
+        config_values = config.split(',') if config else []
+
+        if mode == "modbus":
+            baudrate_list = QtWidgets.QComboBox()
+            baudrate_list.addItems(["9600", "19200", "38400", "57600", "115200"])
+            baudrate_list.setCurrentText(config_values[0] if config_values else "")
+
+            frame_list = QtWidgets.QComboBox()
+            frame_list.addItems(["SERIAL_8N1", "SERIAL_8N2", "SERIAL_8E1", "SERIAL_8O1"])
+            frame_list.setCurrentText(config_values[1] if config_values else "")
+
+            endian_list = QtWidgets.QComboBox()
+            endian_list.addItems(["Big Endian", "Little Endian"])
+            endian_list.setCurrentText(config_values[2] if config_values else "")
+
+            slave_address_entry = QtWidgets.QLineEdit(config_values[3] if len(config_values) > 3 else "")
+            slave_address_entry.setPlaceholderText("Slave Address")
+
+            register_address_entry = QtWidgets.QLineEdit(config_values[4] if len(config_values) > 4 else "")
+            register_address_entry.setPlaceholderText("Register Address")
+
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("Baudrate:"))
+            self.dialog_dynamic_settings_layout.addWidget(baudrate_list)
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("Frame:"))
+            self.dialog_dynamic_settings_layout.addWidget(frame_list)
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("Endian:"))
+            self.dialog_dynamic_settings_layout.addWidget(endian_list)
+            self.dialog_dynamic_settings_layout.addWidget(slave_address_entry)
+            self.dialog_dynamic_settings_layout.addWidget(register_address_entry)
+
+        elif mode == "milli ampere":
+            min_entry = QtWidgets.QLineEdit(config_values[0] if len(config_values) > 0 else "")
+            min_entry.setPlaceholderText("Min Value")
+
+            max_entry = QtWidgets.QLineEdit(config_values[1] if len(config_values) > 1 else "")
+            max_entry.setPlaceholderText("Max Value")
+
+            resistor_value_entry = QtWidgets.QLineEdit(config_values[2] if len(config_values) > 2 else "")
+            resistor_value_entry.setPlaceholderText("Resistor Value")
+
+            self.dialog_dynamic_settings_layout.addWidget(min_entry)
+            self.dialog_dynamic_settings_layout.addWidget(max_entry)
+            self.dialog_dynamic_settings_layout.addWidget(resistor_value_entry)
+
+        elif mode == "pulse":
+            liter_per_pulse_entry = QtWidgets.QLineEdit(config_values[0] if len(config_values) > 0 else "")
+            liter_per_pulse_entry.setPlaceholderText("Liter per Pulse")
+
+            self.dialog_dynamic_settings_layout.addWidget(liter_per_pulse_entry)
+
+    def get_dialog_config(self):
+        config = []
+        for i in range(self.dialog_dynamic_settings_layout.count()):
+            widget = self.dialog_dynamic_settings_layout.itemAt(i).widget()
+            if isinstance(widget, QtWidgets.QLineEdit):
+                config.append(widget.text())
+            elif isinstance(widget, QtWidgets.QComboBox):
+                config.append(widget.currentText())
+        return ','.join(config)
+
+    def save_port_changes(self, dialog, port_name, mode, config):
+        result = update_port(port_name, mode, config)
+        QtWidgets.QMessageBox.information(self, "Result", result)
+        self.list_ports_action()
+        dialog.accept()
+
+    def remove_port_action(self, port_name):
+        result = remove_port(port_name)
+        QtWidgets.QMessageBox.information(self, "Result", result)
+        self.list_ports_action()
+        self.clear_fields()
 
     def fill_port_details(self):
         selected_row = self.ports_table.currentRow()
