@@ -10,6 +10,10 @@ class OperatorInterface(QtWidgets.QWidget):
     value = 0
     required_quantity = 0
     initial_flowmeter_value = 0
+    data = {
+    "channelNumber": None,
+    "actualValue": None
+    }
 
     # Define the signal correctly
     update_flowmeter_signal = QtCore.pyqtSignal(str, str)
@@ -186,18 +190,21 @@ class OperatorInterface(QtWidgets.QWidget):
                     #     "entry_time": log[9],
                     #     "logout_time": log[10] if len(log) > 10 else None  # Ensure index is within range
                     # }
-                    # base_url = "http://197.134.251.84:885/swagger/index.html"
-                    # endpoint = "/AddMeasuringDeviceReading"
-                    # url = base_url + endpoint
-                    # try:
-                    #     response = requests.post(url, json=data)
-                    #     if response.status_code == 200:
-                    #         print(f"Successfully sent data for port {log[2]}")
-                    #         self.sent_logs.add(log_id)  # Mark log as sent
-                    #     else:
-                    #         print(f"Failed to send data for port {log[2]}: {response.status_code}")
-                    # except requests.exceptions.RequestException as e:
-                    #     print(f"Error sending data for port {log[2]}: {e}")
+                    # for i in range(1, len(log)):                        
+                    #     self.data["channelNumber"] = 7000 + i
+                    #     self.data["actualValue"] = log[i]
+                    #     base_url = "http://197.134.251.84:885/swagger/index.html"
+                    #     endpoint = "/AddMeasuringDeviceReading"
+                    #     url = base_url + endpoint
+                    #     try:
+                    #         response = requests.post(url, json=self.data)
+                    #         if response.status_code == 200:
+                    #             print(f"Successfully sent data for port {log[2]}")
+                    #             self.sent_logs.add(log_id)  # Mark log as sent
+                    #         else:
+                    #             print(f"Failed to send data for port {log[2]}: {response.status_code}")
+                    #     except requests.exceptions.RequestException as e:
+                    #         print(f"Error sending data for port {log[2]}: {e}")
             time.sleep(60)  # Send data every 60 seconds
 
     def update_progress_bar(self, port_name, actual_quantity):

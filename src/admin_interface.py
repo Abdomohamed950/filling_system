@@ -110,6 +110,28 @@ class AdminInterface(QtWidgets.QWidget):
 
         self.load_history()
 
+        # New tab for adding history entries
+        add_history_frame = QtWidgets.QWidget()
+        add_history_layout = QtWidgets.QVBoxLayout(add_history_frame)
+
+        # Create labels and line edits for each column
+        self.history_entries = {}
+        columns = ["Station Name", "Port Number", "Operator Name", "Truck Number", "Receipt Number", "Required Quantity", "Actual Quantity", "Flow Meter Reading", "Entry Time", "Logout Time"]
+        for column in columns:
+            label = QtWidgets.QLabel(column)
+            line_edit = QtWidgets.QLineEdit()
+            self.history_entries[column] = line_edit
+            add_history_layout.addWidget(label)
+            add_history_layout.addWidget(line_edit)
+
+        # Save button
+        save_button = QtWidgets.QPushButton("Save")
+        save_button.clicked.connect(self.save_history_entry)
+        add_history_layout.addWidget(save_button)
+
+        add_history_frame.setLayout(add_history_layout)
+        notebook.addTab(add_history_frame, "Add History Entry")
+
         notebook.addTab(operator_frame, "Manage Operators")
         notebook.addTab(port_frame, "Manage ports")
 
@@ -366,6 +388,11 @@ class AdminInterface(QtWidgets.QWidget):
                 QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
         else:
             QtWidgets.QMessageBox.warning(self, "Error", "No operator selected.")
+
+    def save_history_entry(self):
+        entry_data = {column: self.history_entries[column].text() for column in self.history_entries}
+        # Add code to save entry_data to the database
+        print("Saved entry:", entry_data)
 
 if __name__ == "__main__":
     import sys
