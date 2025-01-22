@@ -1,4 +1,23 @@
 import sqlite3
+import pyodbc
+
+def create_server_connection():    
+    connection = pyodbc.connect(
+        "DRIVER={ODBC Driver 17 for SQL Server};"
+        "SERVER=197.134.251.84\\HYPERSCADA,1433;"  
+        "DATABASE=HyperScada;"      
+        "UID=khaled;"        
+        "PWD=Khaleho@123;"        
+    )
+    return connection
+
+def server_log(channel_number, actual_value):
+    connection = create_server_connection()
+    cur = connection.cursor()
+    cur.execute("EXEC [dbo].[InsertReadings] ?, ?", channel_number, actual_value)
+    connection.commit()
+    cur.close()
+    connection.close()
 
 def create_connection():
     conn = sqlite3.connect('water_filling_system.db')
@@ -86,6 +105,17 @@ def get_operator_name_by_password(password):
     result = cursor.fetchone()
     conn.close()
     return result[0] if result else None
+
+def get_operator_id(operator_name):
+    conn = create_connection()
+    cursor = conn.cursor()    
+    cursor.execute("SELECT op_id FROM operators WHERE name = ?", (operator_name,))
+    result = cursor.fetchone()
+    if result:
+        return result[0]
+    else:
+        return None    
+
 
 def is_operator_unique(operator_name, operator_password):
     conn = create_connection()

@@ -1,20 +1,20 @@
-#include <WiFi.h>           //for esp32
+#include <WiFi.h>  //for esp32
 // #include <ESP8266WiFi.h>  //for esp8266
 #include <PubSubClient.h>
 
 // إعدادات الشبكة
-const char* ssid = "abdo";
-const char* password = "abdo1234";
+const char* ssid = "Abdo123";
+const char* password = "01063677938Abdo123@";
 
 // إعدادات MQTT
-const char* mqtt_server = "10.42.0.1";
+const char* mqtt_server = "192.168.1.7";
 const int mqtt_port = 1883;
-const char* truck_id = "port1";  // معرف الشاحنة
+const char* truck_id = "port1"; 
 
 // تعريف المتغيرات
-volatile int flow_meter_value = 0;  // القيمة الحالية لمقياس التدفق
-int target_quantity = 0;            // الكمية المستهدفة
-bool is_running = false;            // حالة التشغيل
+volatile int flow_meter_value = 0;
+int target_quantity = 0;          
+bool is_running = false;          
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -25,7 +25,7 @@ void setup_wifi() {
   Serial.print("Connecting to ");
   Serial.println(ssid);
 
-  WiFi.begin(ssid, password);
+  WiFi.begin(ssid, password, 0, nullptr, true); // تحديد الشبكة المخفية
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -53,18 +53,22 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   // معالجة المواضيع
   if (topicStr == String(truck_id) + "/quantity") {
-    target_quantity = message.toInt()+flow_meter_value;  // تحديث الكمية المستهدفة
+
+    target_quantity = message.toInt() + flow_meter_value; 
     Serial.print("Target quantity set to: ");
     Serial.println(target_quantity);
+    String topic = String(truck_id) + "/state";
+    String payload = "filling";
+    client.publish(topic.c_str(), payload.c_str());
+
   } else if (topicStr == String(truck_id) + "/state") {
     Serial.print("message set to: ");
     Serial.println(message);
     if (message == "start") {
-      is_running = true;     // بدء التشغيل
-      // flow_meter_value = 0;  // إعادة ضبط مقياس التدفق
+      is_running = true;       
       Serial.println("Truck started");
     } else if (message == "stop") {
-      is_running = false;  // إيقاف التشغيل
+      is_running = false;
       Serial.println("Truck stopped");
     }
   }
@@ -95,6 +99,10 @@ void setup() {
 
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
+
+  String topic = String(truck_id) + "/flowmeter";
+  String payload = String(flow_meter_value);
+  client.publish(topic.c_str(), payload.c_str());
 }
 
 void loop() {
@@ -103,21 +111,20 @@ void loop() {
   }
   client.loop();
 
-  if (is_running) {
-    // محاكاة مقياس التدفق
-    static unsigned long lastPublishTime = 0;
-    if (millis() - lastPublishTime > 100) {
+  static unsigned long lastPublishTime = 0;
+  if (millis() - lastPublishTime > 100) {
+    if (is_running) {
+      // محاكاة مقياس التدفق
       lastPublishTime = millis();
-      digitalWrite(LED_BUILTIN, HIGH);  // turn the LED on (HIGH is the voltage level)
+      digitalWrite(LED_BUILTIN, HIGH); 
 
-      flow_meter_value += random(1, 5);  // زيادة عشوائية لمحاكاة التدفق
+      flow_meter_value += random(1, 5);
       String topic = String(truck_id) + "/flowmeter";
       String payload = String(flow_meter_value);
       client.publish(topic.c_str(), payload.c_str());
       Serial.print("Flow meter value published: ");
       Serial.println(payload);
 
-      // التحقق من حالة التوقف
       if (flow_meter_value >= target_quantity) {
         digitalWrite(LED_BUILTIN, LOW);  // turn the LED off by making the voltage LOW
 
@@ -125,8 +132,8 @@ void loop() {
         Serial.println("Target quantity reached, stopping...");
         client.publish((String(truck_id) + "/state").c_str(), "stop");
       }
+    } else {
+      digitalWrite(LED_BUILTIN, LOW);
     }
-  } else {
-    digitalWrite(LED_BUILTIN, LOW);
   }
 }
