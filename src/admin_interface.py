@@ -1,5 +1,5 @@
 from PyQt6 import QtCore, QtWidgets
-from database import create_table, add_operator, remove_operator, list_operators, is_password_unique, add_port, remove_port, get_ports, get_logs, update_port, is_port_name_unique, update_operator
+from database import create_table, add_operator, remove_operator, list_operators, is_password_unique, add_port, remove_port, get_ports, get_logs, update_port, is_port_name_unique, update_operator, save_channel_entry, get_channel_entry
 from login_window import LoginWindow  # Import LoginWindow from the new file
 
 class AdminInterface(QtWidgets.QWidget):
@@ -62,27 +62,30 @@ class AdminInterface(QtWidgets.QWidget):
 
         self.load_history()
 
-        # New tab for adding history entries
-        add_history_frame = QtWidgets.QWidget()
-        add_history_layout = QtWidgets.QVBoxLayout(add_history_frame)
+        # Tab for channels
+        add_chanel_frame = QtWidgets.QWidget()
+        add_chanel_layout = QtWidgets.QVBoxLayout(add_chanel_frame)
 
-        # Create labels and line edits for each column
-        self.history_entries = {}
-        columns = ["Station Name", "Port Number", "Operator Name", "Truck Number", "Receipt Number", "Required Quantity", "Actual Quantity", "Flow Meter Reading", "Entry Time", "Logout Time"]
+        # Create labels for each column
+        self.channel_labels = {}
+        columns = ["Port Number", "Operator Id", "Truck Number", "Receipt Number", "Required Quantity", "Actual Quantity"]
         for column in columns:
             label = QtWidgets.QLabel(column)
-            line_edit = QtWidgets.QLineEdit()
-            self.history_entries[column] = line_edit
-            add_history_layout.addWidget(label)
-            add_history_layout.addWidget(line_edit)
+            value_label = QtWidgets.QLabel()
+            self.channel_labels[column] = value_label
+            add_chanel_layout.addWidget(label)
+            add_chanel_layout.addWidget(value_label)
 
-        # Save button
-        save_button = QtWidgets.QPushButton("Save")
-        save_button.clicked.connect(self.save_history_entry)
-        add_history_layout.addWidget(save_button)
+        # Load existing channel entry data
+        self.load_channel_entry()
 
-        add_history_frame.setLayout(add_history_layout)
-        notebook.addTab(add_history_frame, "Add History Entry")
+        # Edit button
+        edit_button = QtWidgets.QPushButton("Edit")
+        edit_button.clicked.connect(self.show_edit_channel_dialog)
+        add_chanel_layout.addWidget(edit_button)
+
+        add_chanel_frame.setLayout(add_chanel_layout)
+        notebook.addTab(add_chanel_frame, "Channels")
 
         notebook.addTab(operator_frame, "Manage Operators")
         notebook.addTab(port_frame, "Manage ports")
@@ -157,11 +160,17 @@ class AdminInterface(QtWidgets.QWidget):
         self.showMaximized()  # Ensure the window is maximized
 
     def clear_fields(self):
-        self.add_operator_name_entry.clear()
-        self.add_operator_ID_entry.clear()
-        self.add_operator_password_entry.clear()
-        self.add_port_name_entry.clear()
-        self.add_port_mode_entry.setCurrentIndex(0)
+        # Ensure these fields are initialized before clearing
+        if hasattr(self, 'add_operator_name_entry'):
+            self.add_operator_name_entry.clear()
+        if hasattr(self, 'add_operator_ID_entry'):
+            self.add_operator_ID_entry.clear()
+        if hasattr(self, 'add_operator_password_entry'):
+            self.add_operator_password_entry.clear()
+        if hasattr(self, 'add_port_name_entry'):
+            self.add_port_name_entry.clear()
+        if hasattr(self, 'add_port_mode_entry'):
+            self.add_port_mode_entry.setCurrentIndex(0)
 
     def add_operator_action(self, dialog, operator_name, operator_id, operator_password):
         if operator_name and operator_password and operator_id:
@@ -607,10 +616,55 @@ class AdminInterface(QtWidgets.QWidget):
         else:
             QtWidgets.QMessageBox.warning(self, "Error", "No operator selected.")
 
-    def save_history_entry(self):
-        entry_data = {column: self.history_entries[column].text() for column in self.history_entries}
-        # Add code to save entry_data to the database
-        print("Saved entry:", entry_data)
+    def save_chanels_entry(self, dialog):
+        entry_data = {column: self.edit_channel_entries[column].text() for column in self.edit_channel_entries}
+        port_number = entry_data["Port Number"]
+        operator_id = entry_data["Operator Id"]
+        truck_number = entry_data["Truck Number"]
+        receipt_number = entry_data["Receipt Number"]
+        required_quantity = entry_data["Required Quantity"]
+        actual_quantity = entry_data["Actual Quantity"]
+        save_channel_entry(port_number, operator_id, truck_number, receipt_number, required_quantity, actual_quantity)
+        QtWidgets.QMessageBox.information(self, "Result", "Channel entry saved successfully.")
+        self.load_channel_entry()
+        dialog.accept()
+
+    def load_channel_entry(self):
+        entry = get_channel_entry()
+        if entry:
+            port_number, operator_id, truck_number, receipt_number, required_quantity, actual_quantity = entry
+            self.channel_labels["Port Number"].setText(port_number)
+            self.channel_labels["Operator Id"].setText(operator_id)
+            self.channel_labels["Truck Number"].setText(truck_number)
+            self.channel_labels["Receipt Number"].setText(receipt_number)
+            self.channel_labels["Required Quantity"].setText(required_quantity)
+            self.channel_labels["Actual Quantity"].setText(actual_quantity)
+
+    def show_edit_channel_dialog(self):
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle("Edit Channel Entry")
+
+        layout = QtWidgets.QVBoxLayout(dialog)
+
+        self.edit_channel_entries = {}
+        columns = ["Port Number", "Operator Id", "Truck Number", "Receipt Number", "Required Quantity", "Actual Quantity"]
+        for column in columns:
+            label = QtWidgets.QLabel(column)
+            line_edit = QtWidgets.QLineEdit(self.channel_labels[column].text())
+            self.edit_channel_entries[column] = line_edit
+            layout.addWidget(label)
+            layout.addWidget(line_edit)
+
+        save_button = QtWidgets.QPushButton("Save")
+        save_button.clicked.connect(lambda: self.save_chanels_entry(dialog))
+        layout.addWidget(save_button)
+
+        cancel_button = QtWidgets.QPushButton("Cancel")
+        cancel_button.clicked.connect(dialog.reject)
+        layout.addWidget(cancel_button)
+
+        dialog.setLayout(layout)
+        dialog.exec()
 
 if __name__ == "__main__":
     import sys

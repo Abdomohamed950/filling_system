@@ -1,5 +1,5 @@
 from PyQt6 import QtCore, QtWidgets
-from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action, update_log_on_stop, get_logs, server_log, get_operator_id
+from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action, update_log_on_stop, get_logs, server_log, get_operator_id, get_channel_entry
 import threading
 import time
 import paho.mqtt.client as mqtt  # Import the MQTT client
@@ -23,8 +23,9 @@ class OperatorInterface(QtWidgets.QWidget):
         self.start_mqtt_thread()        
         self.status = {}  # Dictionary to store the status of each port
         self.sent_logs = set()  # Set to track sent logs
+        self.chanel_port_number, self.chanel_operator_id, self.chanel_truck_number, self.chanel_receipt_number, self.chanel_required_quantity, self.chanel_actual_quantity= get_channel_entry()
 
-        # Connect the signal to the update_flowmeter_readings method
+        # Connect the signal to the update_flowmeter_signal method
         self.update_flowmeter_signal.connect(self.update_flowmeter_readings)
 
     def init_ui(self):
@@ -124,31 +125,36 @@ class OperatorInterface(QtWidgets.QWidget):
             self.barcode_entry.setFocus()
 
     def start_filling(self, port_name, add_quantity_entry ,receipt_number_entry, truck_number_entry):
-        if(add_quantity_entry.text() and truck_number_entry.text() ):        
-            if( not self.is_disabled(port_name)):            
-                truck_number = truck_number_entry.text()
-                server_log(7001,int(truck_number))
-                server_log(7002,get_operator_id(self.operator_name))
-                receipt_number = receipt_number_entry.text()
-                server_log(7003,int(receipt_number))
+        if add_quantity_entry.text() and truck_number_entry.text():
+            if not self.is_disabled(port_name):
                 quantity = add_quantity_entry.text()
-                server_log(7004,quantity)
-                self.flowmeter_values[port_name] = get_flowmeter_value(port_name)
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-                log_action("station_name", port_name, self.operator_name, truck_number, receipt_number, quantity, None, None, timestamp, None)                
-                self.mqtt_client.publish(f"{port_name}/quantity", quantity)
-                self.mqtt_client.publish(f"{port_name}/state", "start")
-            else :
-                    QtWidgets.QMessageBox.critical(self, "Error", "Port is already filling")
+                self.mqtt_client.publish(f"{port_name}/quantity", quantity)                
+            else:
+                QtWidgets.QMessageBox.critical(self, "Error", "Port is already filling")
         else:
             QtWidgets.QMessageBox.critical(self, "Error", "Please fill all fields")
 
+    def handle_filling_start(self, port_name, add_quantity_entry, receipt_number_entry, truck_number_entry):
+        truck_number = truck_number_entry.text()
+        if truck_number:
+            server_log(int(self.chanel_truck_number), int(truck_number))
+        server_log(int(self.chanel_operator_id), get_operator_id(self.operator_name))
+        receipt_number = receipt_number_entry.text()
+        if receipt_number:
+            server_log(int(self.chanel_receipt_number), int(receipt_number))
+        quantity = add_quantity_entry.text()
+        server_log(int(self.chanel_required_quantity), quantity)
+        self.flowmeter_values[port_name] = get_flowmeter_value(port_name)
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        log_action("station_name", port_name, self.operator_name, truck_number, receipt_number, quantity, None, None, timestamp, None)
+
     def stop_filling(self, port_name):
         self.mqtt_client.publish(f"{port_name}/state", "stop")
-        actual_quantity = self.get_actual_quantity(port_name)        
+        actual_quantity = self.get_actual_quantity(port_name)
         flow_meter_value = get_flowmeter_value(port_name)
         logout_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         update_log_on_stop(port_name, actual_quantity, flow_meter_value, logout_time)
+        server_log(int(self.chanel_actual_quantity), float(actual_quantity))
 
     def get_actual_quantity(self, port_name):
         if port_name in self.flowmeter_values:
@@ -242,15 +248,28 @@ class OperatorInterface(QtWidgets.QWidget):
             state = payload
             store_port_data_from_mqtt(port_name, None, state)
             if state == "filling":
-                self.mqtt_client.publish(f"{port_name}/state", "start")
+                card = self.get_card_by_port_name(port_name)
+                if card:
+                    add_quantity_entry = card.findChild(QtWidgets.QLineEdit, "add_quantity_entry")
+                    receipt_number_entry = card.findChild(QtWidgets.QLineEdit)
+                    truck_number_entry = card.findChild(QtWidgets.QLineEdit)
+                    self.handle_filling_start(port_name, add_quantity_entry, receipt_number_entry, truck_number_entry)
                 self.disable_card_fields(port_name)
+                self.mqtt_client.publish(f"{port_name}/state", "start")
             elif state == "stop":
                 actual_quantity = self.get_actual_quantity(port_name)
-                server_log(7005,float(actual_quantity))
+                server_log(self.chanel_actual_quantity, float(actual_quantity))
                 flow_meter_value = get_flowmeter_value(port_name)
                 logout_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                 update_log_on_stop(port_name, actual_quantity, flow_meter_value, logout_time)
                 self.enable_card_fields(port_name)
+
+    def get_card_by_port_name(self, port_name):
+        for i in range(self.port_cards_layout.count()):
+            card = self.port_cards_layout.itemAt(i).widget()
+            if card.title() == port_name:
+                return card
+        return None
 
     def update_flowmeter_readings(self, port_name, flow_meter_value):
         self.update_flowmeter_label(port_name, flow_meter_value)

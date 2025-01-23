@@ -59,6 +59,17 @@ def create_table():
             current_flowmeter TEXT NOT NULL,
             state TEXT NOT NULL )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS channel_entry (
+            id INTEGER PRIMARY KEY,
+            port_number TEXT,
+            operator_id TEXT,
+            truck_number TEXT,
+            receipt_number TEXT,
+            required_quantity TEXT,
+            actual_quantity TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -249,5 +260,24 @@ def update_operator(old_name, old_id, new_name, new_id, new_password):
         return f"Operator '{new_name}' already exists."
     finally:
         conn.close()
+
+def save_channel_entry(port_number, operator_id, truck_number, receipt_number, required_quantity, actual_quantity):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM channel_entry")  # Ensure only one record exists
+    cursor.execute('''
+        INSERT INTO channel_entry (id, port_number, operator_id, truck_number, receipt_number, required_quantity, actual_quantity)
+        VALUES (1, ?, ?, ?, ?, ?, ?)
+    ''', (port_number, operator_id, truck_number, receipt_number, required_quantity, actual_quantity))
+    conn.commit()
+    conn.close()
+
+def get_channel_entry():
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT port_number, operator_id, truck_number, receipt_number, required_quantity, actual_quantity FROM channel_entry WHERE id = 1")
+    result = cursor.fetchone()
+    conn.close()
+    return result
 
 
