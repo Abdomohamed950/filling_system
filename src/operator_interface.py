@@ -131,7 +131,8 @@ class OperatorInterface(QtWidgets.QWidget):
             if( not self.is_disabled(port_name)):            
                 truck_number = truck_number_entry.text()
                 server_log(7001,int(truck_number))
-                server_log(7002,get_operator_id(self.operator_name))
+                operator_id = get_operator_id(self.operator_name)
+                server_log(7002,operator_id)
                 receipt_number = receipt_number_entry.text()
                 server_log(7003,int(receipt_number))
                 quantity = add_quantity_entry.text()
@@ -139,8 +140,8 @@ class OperatorInterface(QtWidgets.QWidget):
                 self.flowmeter_values[port_name] = get_flowmeter_value(port_name)
                 timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                 log_action("station_name", port_name, self.operator_name, truck_number, receipt_number, quantity, None, None, timestamp, None)                
+                self.mqtt_client.publish(f"{port_name}/logdata", operator_id + "," + truck_number + "," + receipt_number + "," + quantity + "," + timestamp)
                 self.mqtt_client.publish(f"{port_name}/quantity", quantity)
-                self.mqtt_client.publish(f"{port_name}/state", "start")
             else :
                     QtWidgets.QMessageBox.critical(self, "Error", "Port is already filling")
         else:
@@ -155,11 +156,15 @@ class OperatorInterface(QtWidgets.QWidget):
         server_log(int(self.chanel_actual_quantity), float(actual_quantity))
 
     def get_actual_quantity(self, port_name):
-        if port_name in self.flowmeter_values:
-            initial_value = self.flowmeter_values[port_name]
-            current_value = get_flowmeter_value(port_name)
-            if initial_value != "" and current_value != "":
-                return float(current_value) - float(initial_value)
+        card = self.get_card_by_port_name(port_name)
+        if card:
+            actual_quantity_label = card.findChild(QtWidgets.QLabel, "Actual Quantity")
+            if actual_quantity_label:
+                actual_quantity_text = actual_quantity_label.text().replace("Actual Quantity: ", "")
+                try:
+                    return float(actual_quantity_text)
+                except ValueError:
+                    return 0
         return 0
 
     def start_mqtt_thread(self):
@@ -250,7 +255,7 @@ class OperatorInterface(QtWidgets.QWidget):
                 self.disable_card_fields(port_name)
             elif state == "stop":
                 actual_quantity = self.get_actual_quantity(port_name)
-                server_log(7005,float(actual_quantity))
+                server_log(self.chanel_actual_quantity, float(actual_quantity))
                 flow_meter_value = get_flowmeter_value(port_name)
                 logout_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                 update_log_on_stop(port_name, actual_quantity, flow_meter_value, logout_time)
