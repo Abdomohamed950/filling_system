@@ -1,21 +1,3 @@
-#ifndef DEFINES_H_
-#define DEFINES_H_
-
-
-#include <WiFi.h>
-#include <PubSubClient.h>
-#include <ModbusMaster.h>
-
-
-
-const char* ssid = "abdo";
-const char* password = "abdo1234";
-
-// إعدادات MQTT
-const char* mqtt_server = "10.42.0.1";
-const int mqtt_port = 1883;
-const char* truck_id = "truck_1";  // معرف الشاحنة
-
 // Modbus إعدادات
 
 #define MAX485_DE 32
@@ -27,17 +9,60 @@ const char* truck_id = "truck_1";  // معرف الشاحنة
 #define SERIAL_MODBUS_BAUD_RATE 115200
 #define RXD2 16
 #define TXD2 17
-#define MOTOR_PIN 25  // قم بتحديد رقم منفذ التحكم بالموتور
+#define RELAY_OPEN 5
+#define RELAY_CLOSE 6
 
 typedef union {
   uint32_t intVal;
   float f;
 } int2f;
-
 uint16_t DATA[2];
-volatile float flow_meter_value = 0.0;  // القيمة الحالية لمقياس التدفق
-int target_quantity = 0;                // الكمية المستهدفة
-bool is_running = false;   
+
+#define firstCloseTime 1
+#define secondCloseTime 1
+#define thirdCloseTime 1
+
+#define firstCloseLagV 1
+#define secondCloseLagV 1
+#define thirdCloseLagV 1
+
+#define TIME_OPEN_DC 1
+
+bool firstCloseStatus = 0, secondCloseStatus = 0, thirdCloseStatus = 0;
 
 
-#endif  //End  DEFINES_H_
+// إعدادات الشبكة
+const char* ssid = "Abdo123";
+const char* password = "01063677938Abdo123@";
+
+// إعدادات MQTT
+const char* mqtt_server = "192.168.1.7";
+const int mqtt_port = 1883;
+const char* truck_id = "port1";
+
+// تعريف المتغيرات
+uint16_t result = 1;
+volatile float flow_meter_value = 0;
+volatile float flow_meter_prev_value = 0;
+float remain_Quantity;
+int required_Quantity = 0;
+bool is_running = false;
+bool updated = true;
+String logdata = "";
+
+
+//تعريف الopjects
+WiFiClient espClient;
+PubSubClient client(espClient);
+ModbusMaster node;
+
+
+//اعدادات الذاكره
+#define QUEUE_SIZE 10
+#define STRING_MAX_LENGTH 50
+
+int write_index = 0; 
+
+
+
+
