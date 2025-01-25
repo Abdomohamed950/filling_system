@@ -6,11 +6,11 @@
 #define SLAVE_ADDRESS_REG_STR_RNG 2003
 #define REG_IN_ROW 2
 #define POLL_TIMEOUT_MS 100
-#define SERIAL_MODBUS_BAUD_RATE 115200
+#define SERIAL_MODBUS_BAUD_RATE 9600
 #define RXD2 16
 #define TXD2 17
-#define RELAY_OPEN 5
-#define RELAY_CLOSE 6
+#define RELAY_OPEN 25
+#define RELAY_CLOSE 26
 
 typedef union {
   uint32_t intVal;

@@ -251,6 +251,8 @@ void setup() {
   Serial.begin(115200);
   setup_wifi();
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(RELAY_OPEN, OUTPUT);
+  pinMode(RELAY_CLOSE, OUTPUT);
 
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
@@ -259,10 +261,10 @@ void setup() {
   pinMode(MAX485_RE_NEG, OUTPUT);
   pinMode(MAX485_DE, OUTPUT);
   postTransmission();
+  Serial2.begin(SERIAL_MODBUS_BAUD_RATE, SERIAL_8N2, RXD2, TXD2);
   node.begin(SLAVE_ID, Serial2);
   node.preTransmission(preTransmission);
   node.postTransmission(postTransmission);
-  Serial2.begin(SERIAL_MODBUS_BAUD_RATE, SERIAL_8N2, RXD2, TXD2);
 
 
   //under test
@@ -288,15 +290,13 @@ void loop() {
   if (!client.connected()) {
     reconnect();
   }
-  client.loop();
-
+  client.loop();  
 
   static unsigned long lastPublishTime = 0;
-  if (millis() - lastPublishTime > 100) {
-
-    lastPublishTime = millis();
-    flowmeter_reader();
-    String topic = String(truck_id) + "/flowmeter";
+  if (millis() - lastPublishTime > 100) {    
+    lastPublishTime = millis();    
+    flowmeter_reader();    
+    String topic = String(truck_id) + "/flowmeter";    
     String payload = String(flow_meter_value);
     client.publish(topic.c_str(), payload.c_str());
 
