@@ -117,16 +117,35 @@ void RelayOpenDC(void) {
   digitalWrite(RELAY_CLOSE, LOW);
   digitalWrite(RELAY_OPEN, HIGH);
   long td = millis();
-  while ((millis() - td < TIME_OPEN_DC))
-    ;
+  while ((millis() - td < TIME_OPEN_DC)) {
+    static unsigned long last = 0;
+    if (millis() - last > 100) {
+      last = millis();
+      flowmeter_reader();
+      String topic = String(truck_id) + "/flowmeter";
+      String payload = String(flow_meter_value);
+      client.publish(topic.c_str(), payload.c_str());
+      client.loop();
+    }
+  }
   digitalWrite(RELAY_OPEN, LOW);
 }
 
 void RelayCloseDC(uint32_t closeTime) {
   digitalWrite(RELAY_OPEN, LOW);
+  digitalWrite(RELAY_CLOSE, HIGH);
   long td = millis();
-  while ((millis() - td < closeTime))
-    digitalWrite(RELAY_CLOSE, HIGH);
+  while ((millis() - td < closeTime)) {
+    static unsigned long lasst = 0;
+    if (millis() - lasst > 100) {
+      lasst = millis();
+      flowmeter_reader();
+      String topic = String(truck_id) + "/flowmeter";
+      String payload = String(flow_meter_value);
+      client.publish(topic.c_str(), payload.c_str());
+
+    }
+  }
   digitalWrite(RELAY_CLOSE, LOW);
 }
 
@@ -192,6 +211,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.println(message);
     if (message == "start") {
       is_running = true;
+      force_stop = 1;
       firstCloseStatus = 0;
       secondCloseStatus = 0;
       thirdCloseStatus = 0;
@@ -200,12 +220,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
 
     else if (message == "stop") {
-      RelayCloseDC(TIME_OPEN_DC);
-      is_running = false;
-      Serial.println("Truck stopped");
-      logdata += "," + String(flow_meter_value - flow_meter_prev_value);
-      add_string_to_queue(logdata.c_str());
-      print_queue();
+      if (is_running) {
+        if (force_stop)
+          RelayCloseDC(TIME_OPEN_DC);
+        is_running = false;
+        Serial.println("Truck stopped");
+        logdata += "," + String(flow_meter_value - flow_meter_prev_value);
+        add_string_to_queue(logdata.c_str());
+        print_queue();
+      }
     }
   }
 
@@ -256,6 +279,8 @@ void setup() {
 
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
+  init_spiffs();
+  load_index_from_spiffs();
 
   // إعدادات Modbus
   pinMode(MAX485_RE_NEG, OUTPUT);
@@ -290,18 +315,18 @@ void loop() {
   if (!client.connected()) {
     reconnect();
   }
-  client.loop();  
+  client.loop();
 
   static unsigned long lastPublishTime = 0;
-  if (millis() - lastPublishTime > 100) {    
-    lastPublishTime = millis();    
-    flowmeter_reader();    
-    String topic = String(truck_id) + "/flowmeter";    
+  if (millis() - lastPublishTime > 100) {
+    lastPublishTime = millis();
+    flowmeter_reader();
+    // Serial.println(flow_meter_value);
+    String topic = String(truck_id) + "/flowmeter";
     String payload = String(flow_meter_value);
     client.publish(topic.c_str(), payload.c_str());
 
-    if (is_running && result == node.ku8MBSuccess) {
-
+    if (is_running && result == node.ku8MBSuccess) {      
       remain_Quantity = (flow_meter_prev_value + required_Quantity - flow_meter_value);
 
       if (remain_Quantity <= firstCloseLagV && firstCloseStatus == 0) {
@@ -317,9 +342,8 @@ void loop() {
       else if (remain_Quantity <= thirdCloseLagV && thirdCloseStatus == 0) {
         RelayCloseDC(thirdCloseTime);
         thirdCloseStatus = 1;
+        force_stop = 0;
         client.publish((String(truck_id) + "/state").c_str(), "stop");
-        is_running = false;
-        digitalWrite(LED_BUILTIN, LOW);
       }
     }
   }

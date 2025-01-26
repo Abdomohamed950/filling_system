@@ -18,15 +18,15 @@ typedef union {
 } int2f;
 uint16_t DATA[2];
 
-#define firstCloseTime 1
-#define secondCloseTime 1
-#define thirdCloseTime 1
+#define firstCloseTime 1000
+#define secondCloseTime 3000
+#define thirdCloseTime 10000
 
-#define firstCloseLagV 1
-#define secondCloseLagV 1
-#define thirdCloseLagV 1
+#define firstCloseLagV 150
+#define secondCloseLagV 100
+#define thirdCloseLagV 50
 
-#define TIME_OPEN_DC 1
+#define TIME_OPEN_DC 13000
 
 bool firstCloseStatus = 0, secondCloseStatus = 0, thirdCloseStatus = 0;
 
@@ -49,7 +49,7 @@ int required_Quantity = 0;
 bool is_running = false;
 bool updated = true;
 String logdata = "";
-
+bool force_stop ;
 
 //تعريف الopjects
 WiFiClient espClient;
