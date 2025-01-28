@@ -385,6 +385,19 @@ class AdminInterface(QtWidgets.QWidget):
 
             mode_label = QtWidgets.QLabel(f"Mode: {mode}")
             config_label = QtWidgets.QLabel(f"Configuration: {config}")
+            config_labels = config.split(',')
+            if mode == "modbus":
+                labels = ["Baudrate:", "Frame:", "Endian:", "Slave Address:", "Register Address:"]
+            elif mode == "milli ampere":
+                labels = ["Min Value:", "Max Value:", "Resistor Value:"]
+            elif mode == "pulse":
+                labels = ["Liter per Pulse:"]
+            else:
+                labels = []
+
+            for label, value in zip(labels, config_labels):
+                config_label = QtWidgets.QLabel(f"{label} {value}")
+                card_layout.addWidget(config_label)
 
             edit_button = QtWidgets.QPushButton("Edit")
             edit_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileDialogContentsView))

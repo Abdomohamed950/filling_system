@@ -95,14 +95,16 @@ void postTransmission() {
 }
 
 void flowmeter_reader() {
-  result = node.readHoldingRegisters(SLAVE_ADDRESS_REG_STR_RNG, REG_IN_ROW);
-  Serial.print("result = ");
-  Serial.println(result);
+  uint32_t value;
+  result = node.readHoldingRegisters(config[5].toInt(), REG_IN_ROW);
+  // Serial.print("result = ");
+  // Serial.println(result);
 
   if (result == node.ku8MBSuccess) {
     DATA[0] = node.getResponseBuffer(0);
     DATA[1] = node.getResponseBuffer(1);
-    uint32_t value = AABBCCDD(DATA[0], DATA[1]);
+    if(config[3] == "AABBCCDD")
+      value = AABBCCDD(DATA[0], DATA[1]);
 
     int2f int2f_obj;
     int2f_obj.intVal = value;
@@ -121,7 +123,7 @@ void RelayOpenDC(void) {
     static unsigned long last = 0;
     if (millis() - last > 100) {
       last = millis();
-      flowmeter_reader();
+      // flowmeter_reader();
       String topic = String(truck_id) + "/flowmeter";
       String payload = String(flow_meter_value);
       client.publish(topic.c_str(), payload.c_str());
@@ -139,7 +141,7 @@ void RelayCloseDC(uint32_t closeTime) {
     static unsigned long lasst = 0;
     if (millis() - lasst > 100) {
       lasst = millis();
-      flowmeter_reader();
+      // flowmeter_reader();
       String topic = String(truck_id) + "/flowmeter";
       String payload = String(flow_meter_value);
       client.publish(topic.c_str(), payload.c_str());
@@ -233,13 +235,27 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 
   //under tested
-  // else if (topicStr == String(truck_id) + "/conf") {
-  //   Serial.print("config set to: ");
-  //   Serial.println(message);
-  //   updated = false;
-  // }
+  else if (topicStr == String(truck_id) + "/conf") {
+    Serial.print("config set to: ");
+    Serial.println(message);
+    splitString(message, ',', config, 6);
+    updated = false;
+  }
 
   // end of under tested
+}
+
+void splitString(const String &str, char delimiter, String result[], int maxParts) {
+  int currentIndex = 0;
+  int startIndex = 0;
+  int endIndex = str.indexOf(delimiter);
+
+  while (endIndex >= 0 && currentIndex < maxParts - 1) {
+      result[currentIndex++] = str.substring(startIndex, endIndex);
+      startIndex = endIndex + 1;
+      endIndex = str.indexOf(delimiter, startIndex);
+  }
+  result[currentIndex] = str.substring(startIndex);
 }
 
 
@@ -282,31 +298,50 @@ void setup() {
   init_spiffs();
   load_index_from_spiffs();
 
-  // إعدادات Modbus
-  pinMode(MAX485_RE_NEG, OUTPUT);
-  pinMode(MAX485_DE, OUTPUT);
-  postTransmission();
-  Serial2.begin(SERIAL_MODBUS_BAUD_RATE, SERIAL_8N2, RXD2, TXD2);
-  node.begin(SLAVE_ID, Serial2);
-  node.preTransmission(preTransmission);
-  node.postTransmission(postTransmission);
-
-
   //under test
   if (!client.connected()) {
     reconnect();
   }
-  // while (updated) {
-  String topic = String(truck_id) + "/flowmeter";
-  String payload = String(flow_meter_value);
-  client.publish(topic.c_str(), payload.c_str());
-  //   delay(100);
-  //   topic = String(truck_id) + "/update";
-  //   payload = "config";
-  //   client.publish(topic.c_str(), payload.c_str());
-  //   delay(100);
-  // }
+  while (updated) {
+    String topic = String(truck_id) + "/update";
+    String payload = "config";
+    client.publish(topic.c_str(), payload.c_str());
+    client.loop();
+    delay(3000);
+  }
   // end of under test
+
+  if(config[0] == "modbus")
+  {
+    int frame;
+    if (config[2] == "SERIAL_8N1")
+      frame = SERIAL_8N1;
+    else if (config[2] == "SERIAL_8N2")
+      frame = SERIAL_8N2;
+    else if (config[2] == "SERIAL_8O1")
+      frame = SERIAL_8O1;
+    else if (config[2] == "SERIAL_8O2")
+      frame = SERIAL_8O2;
+    else if (config[2] == "SERIAL_8E1")
+      frame = SERIAL_8E1;
+    else if (config[2] == "SERIAL_8E1")
+      frame = SERIAL_8E2;
+    
+    // إعدادات Modbus
+    pinMode(MAX485_RE_NEG, OUTPUT);
+    pinMode(MAX485_DE, OUTPUT);
+    postTransmission();
+    Serial2.begin(config[1].toInt(), frame, RXD2, TXD2);
+    node.begin(config[4].toInt(), Serial2);
+    node.preTransmission(preTransmission);
+    node.postTransmission(postTransmission);
+  }
+
+  for (int i =0 ; i<6; i++)
+  {
+    Serial.println(config[i]);
+  }
+
 }
 
 
@@ -320,13 +355,14 @@ void loop() {
   static unsigned long lastPublishTime = 0;
   if (millis() - lastPublishTime > 100) {
     lastPublishTime = millis();
-    flowmeter_reader();
+    // flowmeter_reader();
     // Serial.println(flow_meter_value);
     String topic = String(truck_id) + "/flowmeter";
     String payload = String(flow_meter_value);
     client.publish(topic.c_str(), payload.c_str());
 
-    if (is_running && result == node.ku8MBSuccess) {      
+    if (is_running && result == node.ku8MBSuccess) {    
+      flow_meter_value += random(1,5);
       remain_Quantity = (flow_meter_prev_value + required_Quantity - flow_meter_value);
 
       if (remain_Quantity <= firstCloseLagV && firstCloseStatus == 0) {
