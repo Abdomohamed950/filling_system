@@ -22,8 +22,7 @@ class OperatorInterface(QtWidgets.QWidget):
         self.flowmeter_values = {}  # Ensure this is initialized here
         self.start_mqtt_thread()        
         self.status = {}  # Dictionary to store the status of each port
-        self.sent_logs = set()  # Set to track sent logs
-        self.chanel_port_number, self.chanel_operator_id, self.chanel_truck_number, self.chanel_receipt_number, self.chanel_required_quantity, self.chanel_actual_quantity= get_channel_entry()
+        self.sent_logs = set()  # Set to track sent logs        
 
         # Connect the signal to the update_flowmeter_signal method
         self.update_flowmeter_signal.connect(self.update_flowmeter_readings)
@@ -129,14 +128,15 @@ class OperatorInterface(QtWidgets.QWidget):
     def start_filling(self, port_name, add_quantity_entry ,receipt_number_entry, truck_number_entry):
         if(add_quantity_entry.text() and truck_number_entry.text() ):        
             if( not self.is_disabled(port_name)):            
+                chanel_truck_number, chanel_operator_id, chanel_receipt_number, chanel_required_quantity, chanel_actual_quantity, chanel_flowmeter= get_channel_entry(port_name)
                 truck_number = truck_number_entry.text()
-                server_log(7001,int(truck_number))
+                server_log(int(chanel_truck_number),int(truck_number))
                 operator_id = get_operator_id(self.operator_name)
-                server_log(7002,operator_id)
+                server_log(int(chanel_operator_id), operator_id)
                 receipt_number = receipt_number_entry.text()
-                server_log(7003,int(receipt_number))
+                server_log(int(chanel_receipt_number),int(receipt_number))
                 quantity = add_quantity_entry.text()
-                server_log(7004,quantity)
+                server_log(int(chanel_required_quantity),quantity)
                 self.flowmeter_values[port_name] = get_flowmeter_value(port_name)
                 timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                 log_action("station_name", port_name, self.operator_name, truck_number, receipt_number, quantity, None, None, timestamp, None)                
@@ -148,12 +148,14 @@ class OperatorInterface(QtWidgets.QWidget):
             QtWidgets.QMessageBox.critical(self, "Error", "Please fill all fields")
 
     def stop_filling(self, port_name):
+        chanel_truck_number, chanel_operator_id, chanel_receipt_number, chanel_required_quantity, chanel_actual_quantity, chanel_flowmeter= get_channel_entry(port_name)
         self.mqtt_client.publish(f"{port_name}/state", "stop")
         actual_quantity = self.get_actual_quantity(port_name)
         flow_meter_value = get_flowmeter_value(port_name)
         logout_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         update_log_on_stop(port_name, actual_quantity, flow_meter_value, logout_time)
-        server_log(int(self.chanel_actual_quantity), float(actual_quantity))
+        server_log(int(chanel_actual_quantity), float(actual_quantity))
+        server_log(int(chanel_flowmeter), float(flow_meter_value))
 
     def get_actual_quantity(self, port_name):
         card = self.get_card_by_port_name(port_name)
@@ -254,8 +256,9 @@ class OperatorInterface(QtWidgets.QWidget):
                 self.mqtt_client.publish(f"{port_name}/state", "start")
                 self.disable_card_fields(port_name)
             elif state == "stop":
+                chanel_truck_number, chanel_operator_id, chanel_receipt_number, chanel_required_quantity, chanel_actual_quantity, chanel_flowmeter= get_channel_entry(port_name)
                 actual_quantity = self.get_actual_quantity(port_name)
-                server_log(self.chanel_actual_quantity, float(actual_quantity))
+                server_log(chanel_actual_quantity, float(actual_quantity))
                 flow_meter_value = get_flowmeter_value(port_name)
                 logout_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                 update_log_on_stop(port_name, actual_quantity, flow_meter_value, logout_time)

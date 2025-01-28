@@ -61,8 +61,9 @@ def create_table():
     ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS channel_entry (
-            id INTEGER PRIMARY KEY,
-            port_number TEXT,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            port TEXT,
+            flowmeter TEXT,
             operator_id TEXT,
             truck_number TEXT,
             receipt_number TEXT,
@@ -261,23 +262,41 @@ def update_operator(old_name, old_id, new_name, new_id, new_password):
     finally:
         conn.close()
 
-def save_channel_entry(port_number, operator_id, truck_number, receipt_number, required_quantity, actual_quantity):
+def get_channel_entries():
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM channel_entry")  # Ensure only one record exists
-    cursor.execute('''
-        INSERT INTO channel_entry (id, port_number, operator_id, truck_number, receipt_number, required_quantity, actual_quantity)
-        VALUES (1, ?, ?, ?, ?, ?, ?)
-    ''', (port_number, operator_id, truck_number, receipt_number, required_quantity, actual_quantity))
+    cursor.execute("SELECT port, flowmeter, operator_id, truck_number, receipt_number, required_quantity, actual_quantity FROM channel_entry")
+    results = cursor.fetchall()
+    conn.close()
+    return results
+
+def update_channel_entry(port_name, flowmeter, operator_id, truck_number, receipt_number, required_quantity, actual_quantity):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM channel_entry WHERE port = ?", (port_name,))
+    result = cursor.fetchone()
+    if result:
+        cursor.execute('''
+            UPDATE channel_entry
+            SET flowmeter = ?, operator_id = ?, truck_number = ?, receipt_number = ?, required_quantity = ?, actual_quantity = ?
+            WHERE port = ?
+        ''', (flowmeter, operator_id, truck_number, receipt_number, required_quantity, actual_quantity, port_name))
+    else:
+        cursor.execute('''
+            INSERT INTO channel_entry (port, flowmeter, operator_id, truck_number, receipt_number, required_quantity, actual_quantity)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (port_name, flowmeter, operator_id, truck_number, receipt_number, required_quantity, actual_quantity))
     conn.commit()
     conn.close()
 
-def get_channel_entry():
+def get_channel_entry(port_name):
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT port_number, operator_id, truck_number, receipt_number, required_quantity, actual_quantity FROM channel_entry WHERE id = 1")
+    cursor.execute('''
+        SELECT truck_number, operator_id, receipt_number, required_quantity, actual_quantity, flowmeter
+        FROM channel_entry
+        WHERE port = ?
+    ''', (port_name,))
     result = cursor.fetchone()
     conn.close()
     return result
-
-

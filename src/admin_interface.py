@@ -1,5 +1,5 @@
 from PyQt6 import QtCore, QtWidgets
-from database import create_table, add_operator, remove_operator, list_operators, is_password_unique, add_port, remove_port, get_ports, get_logs, update_port, is_port_name_unique, update_operator, save_channel_entry, get_channel_entry
+from database import create_table, add_operator, remove_operator, list_operators, is_password_unique, add_port, remove_port, get_ports, get_logs, update_port, is_port_name_unique, update_operator, get_channel_entries, update_channel_entry, get_channel_entry
 from login_window import LoginWindow  # Import LoginWindow from the new file
 
 class AdminInterface(QtWidgets.QWidget):
@@ -63,32 +63,20 @@ class AdminInterface(QtWidgets.QWidget):
         self.load_history()
 
         # Tab for channels
-        add_chanel_frame = QtWidgets.QWidget()
-        add_chanel_layout = QtWidgets.QVBoxLayout(add_chanel_frame)
+        channel_frame = QtWidgets.QWidget()
+        channel_layout = QtWidgets.QVBoxLayout(channel_frame)
 
-        # Create labels for each column
-        self.channel_labels = {}
-        columns = ["Port Number", "Operator Id", "Truck Number", "Receipt Number", "Required Quantity", "Actual Quantity"]
-        for column in columns:
-            label = QtWidgets.QLabel(column)
-            value_label = QtWidgets.QLabel()
-            self.channel_labels[column] = value_label
-            add_chanel_layout.addWidget(label)
-            add_chanel_layout.addWidget(value_label)
+        scroll_area_channels = QtWidgets.QScrollArea()
+        scroll_area_channels.setWidgetResizable(True)
+        scroll_content_channels = QtWidgets.QWidget()
+        self.channel_cards_layout = QtWidgets.QGridLayout(scroll_content_channels)
+        self.channel_cards_layout.setSpacing(30)  # Add padding between cards
+        scroll_area_channels.setWidget(scroll_content_channels)
+        channel_layout.addWidget(scroll_area_channels)
 
-        # Load existing channel entry data
-        self.load_channel_entry()
+        channel_frame.setLayout(channel_layout)
 
-        # Edit button
-        edit_button = QtWidgets.QPushButton("Edit")
-        edit_button.clicked.connect(self.show_edit_channel_dialog)
-        add_chanel_layout.addWidget(edit_button)
-
-        add_chanel_frame.setLayout(add_chanel_layout)
-        notebook.addTab(add_chanel_frame, "Channels")
-
-        notebook.addTab(operator_frame, "Manage Operators")
-        notebook.addTab(port_frame, "Manage ports")
+        notebook.addTab(channel_frame, "Channels")
 
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.addWidget(notebook)
@@ -99,6 +87,7 @@ class AdminInterface(QtWidgets.QWidget):
         main_layout.addWidget(logout_button)
 
         self.auto_refresh()
+        
 
 
     def update_port_settings(self):
@@ -589,6 +578,7 @@ class AdminInterface(QtWidgets.QWidget):
                 self.history_table.setItem(row_idx, col_idx, QtWidgets.QTableWidgetItem(str(data)))
 
     def auto_refresh(self):
+        self.list_channels_action() 
         self.list_operators_action()
         self.list_ports_action()
         QtCore.QTimer.singleShot(5000, self.auto_refresh)  
@@ -666,11 +656,108 @@ class AdminInterface(QtWidgets.QWidget):
         dialog.setLayout(layout)
         dialog.exec()
 
+    def list_channels_action(self):
+        ports = get_ports()
+        channel_entries = get_channel_entries()
+        for i in reversed(range(self.channel_cards_layout.count())):
+            self.channel_cards_layout.itemAt(i).widget().deleteLater()
+
+        for idx, port in enumerate(ports):
+            port_name, mode, config = port
+            card = QtWidgets.QGroupBox(port_name)
+            card.setFixedSize(300, 300)  # Set fixed size for each card
+            card_layout = QtWidgets.QVBoxLayout()
+            
+            lis = get_channel_entry(port_name)
+            if lis:
+                truck_number_label = QtWidgets.QLabel(f"Truck Number: {lis[0]}")
+                operator_id_label = QtWidgets.QLabel(f"Operator Id: {lis[1]}")
+                receipt_number_label = QtWidgets.QLabel(f"Receipt Number: {lis[2]}")
+                required_quantity_label = QtWidgets.QLabel(f"Required Quantity: {lis[3]}")
+                actual_quantity_label = QtWidgets.QLabel(f"Actual Quantity: {lis[4]}")
+                flowmeter_label = QtWidgets.QLabel(f"Flowmeter: {lis[5]}")
+            else:
+                truck_number_label = QtWidgets.QLabel("Truck Number: N/A")
+                operator_id_label = QtWidgets.QLabel("Operator Id: N/A")
+                receipt_number_label = QtWidgets.QLabel("Receipt Number: N/A")
+                required_quantity_label = QtWidgets.QLabel("Required Quantity: N/A")
+                actual_quantity_label = QtWidgets.QLabel("Actual Quantity: N/A")
+                flowmeter_label = QtWidgets.QLabel("Flowmeter: N/A")
+
+            edit_button = QtWidgets.QPushButton("Edit")
+            edit_button.clicked.connect(lambda _, pn=port_name: self.show_edit_channel_dialog(pn))
+
+            card_layout.addWidget(truck_number_label)
+            card_layout.addWidget(operator_id_label)
+            card_layout.addWidget(receipt_number_label)
+            card_layout.addWidget(required_quantity_label)
+            card_layout.addWidget(actual_quantity_label)
+            card_layout.addWidget(flowmeter_label)
+            card_layout.addWidget(edit_button)
+
+            card.setLayout(card_layout)
+            self.channel_cards_layout.addWidget(card, idx // 5, idx % 5)  # Arrange cards in a grid with 5 cards per row
+
+    def show_edit_channel_dialog(self, port_name):
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle(f"Edit Channel: {port_name}")
+
+        layout = QtWidgets.QVBoxLayout(dialog)
+
+        channel_entry = get_channel_entry(port_name)
+
+        truck_number_label = QtWidgets.QLabel("Truck Number:")
+        truck_number_entry = QtWidgets.QLineEdit(channel_entry[0] if channel_entry else "")
+
+        operator_id_label = QtWidgets.QLabel("Operator ID:")
+        operator_id_entry = QtWidgets.QLineEdit(channel_entry[1] if channel_entry else "")
+
+        receipt_number_label = QtWidgets.QLabel("Receipt Number:")
+        receipt_number_entry = QtWidgets.QLineEdit(channel_entry[2] if channel_entry else "")
+
+        required_quantity_label = QtWidgets.QLabel("Required Quantity:")
+        required_quantity_entry = QtWidgets.QLineEdit(channel_entry[3] if channel_entry else "")
+
+        actual_quantity_label = QtWidgets.QLabel("Actual Quantity:")
+        actual_quantity_entry = QtWidgets.QLineEdit(channel_entry[4] if channel_entry else "")
+
+        flowmeter_label = QtWidgets.QLabel("Flowmeter:")
+        flowmeter_entry = QtWidgets.QLineEdit(channel_entry[5] if channel_entry else "")
+
+        save_button = QtWidgets.QPushButton("Save")
+        save_button.clicked.connect(lambda: self.save_channel_changes(dialog, port_name, truck_number_entry.text(), operator_id_entry.text(), receipt_number_entry.text(), required_quantity_entry.text(), actual_quantity_entry.text(), flowmeter_entry.text()))
+
+        cancel_button = QtWidgets.QPushButton("Cancel")
+        cancel_button.clicked.connect(dialog.reject)
+
+        layout.addWidget(truck_number_label)
+        layout.addWidget(truck_number_entry)
+        layout.addWidget(operator_id_label)
+        layout.addWidget(operator_id_entry)
+        layout.addWidget(receipt_number_label)
+        layout.addWidget(receipt_number_entry)
+        layout.addWidget(required_quantity_label)
+        layout.addWidget(required_quantity_entry)
+        layout.addWidget(actual_quantity_label)
+        layout.addWidget(actual_quantity_entry)
+        layout.addWidget(flowmeter_label)
+        layout.addWidget(flowmeter_entry)
+        layout.addWidget(save_button)
+        layout.addWidget(cancel_button)
+
+        dialog.setLayout(layout)
+        dialog.exec()
+
+    def save_channel_changes(self, dialog, port_name,  truck_number, operator_id, receipt_number, required_quantity, actual_quantity, flowmeter):
+        update_channel_entry(port_name, flowmeter, operator_id, truck_number, receipt_number, required_quantity, actual_quantity)
+        QtWidgets.QMessageBox.information(self, "Result", "Channel entry updated successfully.")
+        self.list_channels_action()
+        dialog.accept()
+
+
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
     admin_interface = AdminInterface()
     admin_interface.show()
     sys.exit(app.exec())
-
-
