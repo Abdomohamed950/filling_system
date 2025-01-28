@@ -1,5 +1,5 @@
 from PyQt6 import QtCore, QtWidgets
-from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action, update_log_on_stop, get_logs, server_log, get_operator_id, get_channel_entry
+from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action, update_log_on_stop, get_logs, server_log, get_operator_id, get_channel_entry, get_config
 import threading
 import time
 import paho.mqtt.client as mqtt  # Import the MQTT client
@@ -262,7 +262,12 @@ class OperatorInterface(QtWidgets.QWidget):
                 flow_meter_value = get_flowmeter_value(port_name)
                 logout_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                 update_log_on_stop(port_name, actual_quantity, flow_meter_value, logout_time)
-                self.enable_card_fields(port_name)
+                self.enable_card_fields(port_name)        
+        elif "/update" in topic:
+            port_name = topic.split('/')[0]
+            config = ','.join(get_config(port_name))
+            self.mqtt_client.publish(f"{port_name}/conf", config)
+            print(config)
 
     def get_card_by_port_name(self, port_name):
         for i in range(self.port_cards_layout.count()):

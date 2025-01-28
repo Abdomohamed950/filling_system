@@ -102,9 +102,9 @@ class AdminInterface(QtWidgets.QWidget):
             self.baudrate_list = QtWidgets.QComboBox()
             self.baudrate_list.addItems(["9600", "19200", "38400", "57600", "115200"])
             self.frame_list = QtWidgets.QComboBox()
-            self.frame_list.addItems(["SERIAL_8N1", "SERIAL_8N2", "SERIAL_8E1", "SERIAL_8O1"])
+            self.frame_list.addItems(["SERIAL_8N1", "SERIAL_8N2", "SERIAL_8E1", "SERIAL_8E2", "SERIAL_8O1", "SERIAL_8O2"])
             self.endian_list = QtWidgets.QComboBox()
-            self.endian_list.addItems(["Big Endian", "Little Endian"])
+            self.endian_list.addItems(["AABBCCDD", "DDCCBBAA"])
 
             self.slave_address_entry = QtWidgets.QLineEdit()
             self.slave_address_entry.setPlaceholderText("Slave Address")

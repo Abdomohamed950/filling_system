@@ -177,6 +177,13 @@ def get_ports():
     conn.close()
     return ports
 
+def get_config(port_name):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT mode, config FROM ports WHERE name = ?", (port_name,))
+    result = cursor.fetchone()
+    conn.close()
+    return result    
 
 def update_port(port_name, mode, config):
     conn = create_connection()
