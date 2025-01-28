@@ -498,11 +498,11 @@ class AdminInterface(QtWidgets.QWidget):
             baudrate_list.setCurrentText(config_values[0] if config_values else "")
 
             frame_list = QtWidgets.QComboBox()
-            frame_list.addItems(["SERIAL_8N1", "SERIAL_8N2", "SERIAL_8E1", "SERIAL_8O1"])
+            frame_list.addItems(["SERIAL_8N1", "SERIAL_8N2", "SERIAL_8E1", "SERIAL_8E2", "SERIAL_8O1", "SERIAL_8O2"])
             frame_list.setCurrentText(config_values[1] if config_values else "")
 
             endian_list = QtWidgets.QComboBox()
-            endian_list.addItems(["Big Endian", "Little Endian"])
+            endian_list.addItems(["AABBCCDD", "DDCCBBAA"])
             endian_list.setCurrentText(config_values[2] if config_values else "")
 
             slave_address_entry = QtWidgets.QLineEdit(config_values[3] if len(config_values) > 3 else "")
