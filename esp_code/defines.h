@@ -1,3 +1,13 @@
+// إعدادات الشبكة
+const char* ssid = "Abdo123";
+const char* password = "01063677938Abdo123@";
+
+// إعدادات MQTT
+const char* mqtt_server = "192.168.1.7";
+const int mqtt_port = 1883;
+const char* truck_id = "port1";
+
+
 // Modbus إعدادات
 
 #define MAX485_DE 32
@@ -30,15 +40,6 @@ uint16_t DATA[2];
 
 bool firstCloseStatus = 0, secondCloseStatus = 0, thirdCloseStatus = 0;
 
-
-// إعدادات الشبكة
-const char* ssid = "Abdo123";
-const char* password = "01063677938Abdo123@";
-
-// إعدادات MQTT
-const char* mqtt_server = "192.168.1.7";
-const int mqtt_port = 1883;
-const char* truck_id = "port1";
 
 // تعريف المتغيرات
 uint16_t result = 1;

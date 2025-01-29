@@ -123,10 +123,8 @@ void RelayOpenDC(void) {
     static unsigned long last = 0;
     if (millis() - last > 100) {
       last = millis();
-      // flowmeter_reader();
-      String topic = String(truck_id) + "/flowmeter";
-      String payload = String(flow_meter_value);
-      client.publish(topic.c_str(), payload.c_str());
+      flowmeter_reader();
+      client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
       client.loop();
     }
   }
@@ -141,10 +139,8 @@ void RelayCloseDC(uint32_t closeTime) {
     static unsigned long lasst = 0;
     if (millis() - lasst > 100) {
       lasst = millis();
-      // flowmeter_reader();
-      String topic = String(truck_id) + "/flowmeter";
-      String payload = String(flow_meter_value);
-      client.publish(topic.c_str(), payload.c_str());
+      flowmeter_reader();      
+      client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
 
     }
   }
@@ -197,10 +193,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
     required_Quantity = message.toInt();
     flow_meter_prev_value = flow_meter_value;
     Serial.print("Target quantity set to: ");
-    Serial.println(required_Quantity);
-    String topic = String(truck_id) + "/state";
-    String payload = "filling";
-    client.publish(topic.c_str(), payload.c_str());
+    Serial.println(required_Quantity);    
+    client.publish((String(truck_id) + "/state").c_str(), "filling");
 
   }
 
@@ -302,10 +296,8 @@ void setup() {
   if (!client.connected()) {
     reconnect();
   }
-  while (updated) {
-    String topic = String(truck_id) + "/update";
-    String payload = "config";
-    client.publish(topic.c_str(), payload.c_str());
+  while (updated) {    
+    client.publish((String(truck_id) + "/update").c_str(), "config");
     client.loop();
     delay(3000);
   }
@@ -355,14 +347,12 @@ void loop() {
   static unsigned long lastPublishTime = 0;
   if (millis() - lastPublishTime > 100) {
     lastPublishTime = millis();
-    // flowmeter_reader();
-    // Serial.println(flow_meter_value);
-    String topic = String(truck_id) + "/flowmeter";
-    String payload = String(flow_meter_value);
-    client.publish(topic.c_str(), payload.c_str());
+    flowmeter_reader();
+    Serial.println(flow_meter_value);
+    client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
 
     if (is_running && result == node.ku8MBSuccess) {    
-      flow_meter_value += random(1,5);
+      // flow_meter_value += random(1,5);
       remain_Quantity = (flow_meter_prev_value + required_Quantity - flow_meter_value);
 
       if (remain_Quantity <= firstCloseLagV && firstCloseStatus == 0) {
