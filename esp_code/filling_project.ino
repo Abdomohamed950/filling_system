@@ -1,12 +1,12 @@
-// #include <WiFi.h>  //for esp32
-#include <ESP8266WiFi.h>  //for esp8266
+#include <WiFi.h>  //for esp32
+// #include <ESP8266WiFi.h>  //for esp8266
 #include <PubSubClient.h>
 #include <ModbusMaster.h>
 #include "defines.h"
 #include <FS.h>
-// #include <SPIFFS.h>
-#include <LittleFS.h>
-#define SPIFFS LittleFS
+#include <SPIFFS.h>
+// #include <LittleFS.h>
+// #define SPIFFS LittleFS
 
 
 
