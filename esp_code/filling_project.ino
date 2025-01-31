@@ -103,7 +103,7 @@ void flowmeter_reader() {
   if (result == node.ku8MBSuccess) {
     DATA[0] = node.getResponseBuffer(0);
     DATA[1] = node.getResponseBuffer(1);
-    if(config[3] == "AABBCCDD")
+    if (config[3] == "AABBCCDD")
       value = AABBCCDD(DATA[0], DATA[1]);
 
     int2f int2f_obj;
@@ -139,9 +139,8 @@ void RelayCloseDC(uint32_t closeTime) {
     static unsigned long lasst = 0;
     if (millis() - lasst > 100) {
       lasst = millis();
-      flowmeter_reader();      
+      flowmeter_reader();
       client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
-
     }
   }
   digitalWrite(RELAY_CLOSE, LOW);
@@ -193,7 +192,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     required_Quantity = message.toInt();
     flow_meter_prev_value = flow_meter_value;
     Serial.print("Target quantity set to: ");
-    Serial.println(required_Quantity);    
+    Serial.println(required_Quantity);
     client.publish((String(truck_id) + "/state").c_str(), "filling");
 
   }
@@ -232,22 +231,22 @@ void callback(char* topic, byte* payload, unsigned int length) {
   else if (topicStr == String(truck_id) + "/conf") {
     Serial.print("config set to: ");
     Serial.println(message);
-    splitString(message, ',', config, 6);
+    splitString(message, ',', config, 10);
     updated = false;
   }
 
   // end of under tested
 }
 
-void splitString(const String &str, char delimiter, String result[], int maxParts) {
+void splitString(const String& str, char delimiter, String result[], int maxParts) {
   int currentIndex = 0;
   int startIndex = 0;
   int endIndex = str.indexOf(delimiter);
 
   while (endIndex >= 0 && currentIndex < maxParts - 1) {
-      result[currentIndex++] = str.substring(startIndex, endIndex);
-      startIndex = endIndex + 1;
-      endIndex = str.indexOf(delimiter, startIndex);
+    result[currentIndex++] = str.substring(startIndex, endIndex);
+    startIndex = endIndex + 1;
+    endIndex = str.indexOf(delimiter, startIndex);
   }
   result[currentIndex] = str.substring(startIndex);
 }
@@ -296,15 +295,14 @@ void setup() {
   if (!client.connected()) {
     reconnect();
   }
-  while (updated) {    
+  while (updated) {
     client.publish((String(truck_id) + "/update").c_str(), "config");
     client.loop();
-    delay(3000);
+    delay(1000);
   }
   // end of under test
 
-  if(config[0] == "modbus")
-  {
+  if (config[0] == "modbus") {
     int frame;
     if (config[2] == "SERIAL_8N1")
       frame = SERIAL_8N1;
@@ -318,7 +316,7 @@ void setup() {
       frame = SERIAL_8E1;
     else if (config[2] == "SERIAL_8E1")
       frame = SERIAL_8E2;
-    
+
     // إعدادات Modbus
     pinMode(MAX485_RE_NEG, OUTPUT);
     pinMode(MAX485_DE, OUTPUT);
@@ -327,13 +325,18 @@ void setup() {
     node.begin(config[4].toInt(), Serial2);
     node.preTransmission(preTransmission);
     node.postTransmission(postTransmission);
+
+    firstCloseTime = config[6].toInt();
+    secondCloseTime = config[7].toInt();
+    firstCloseLagV = config[8].toInt();
+    secondCloseLagV = config[9].toInt();
+    TIME_OPEN_DC = firstCloseTime + secondCloseTime + thirdCloseTime;
   }
 
-  for (int i =0 ; i<6; i++)
-  {
-    Serial.println(config[i]);
-  }
-
+  for (int i = 0; i < 10; i++) 
+    Serial.println("config of " + String(i) + "=\t"+config[i]);
+  Serial.println("time_open_dc =\t"+String(TIME_OPEN_DC));
+  
 }
 
 
@@ -348,10 +351,10 @@ void loop() {
   if (millis() - lastPublishTime > 100) {
     lastPublishTime = millis();
     flowmeter_reader();
-    Serial.println(flow_meter_value);
+    // Serial.println(flow_meter_value);
     client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
 
-    if (is_running && result == node.ku8MBSuccess) {    
+    if (is_running && result == node.ku8MBSuccess) {
       // flow_meter_value += random(1,5);
       remain_Quantity = (flow_meter_prev_value + required_Quantity - flow_meter_value);
 

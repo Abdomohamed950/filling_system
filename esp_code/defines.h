@@ -28,15 +28,14 @@ typedef union {
 } int2f;
 uint16_t DATA[2];
 
-#define firstCloseTime 1000
-#define secondCloseTime 3000
-#define thirdCloseTime 10000
+int firstCloseTime   ;
+int secondCloseTime  ;
+int thirdCloseTime =3000;
+int firstCloseLagV   ;
+int secondCloseLagV  ;
+int thirdCloseLagV =100;
 
-#define firstCloseLagV 150
-#define secondCloseLagV 100
-#define thirdCloseLagV 50
-
-#define TIME_OPEN_DC 13000
+int TIME_OPEN_DC ;
 
 bool firstCloseStatus = 0, secondCloseStatus = 0, thirdCloseStatus = 0;
 
@@ -65,5 +64,5 @@ ModbusMaster node;
 int write_index = 0; 
 
 
-String config[6];
+String config[10];
 
