@@ -1,10 +1,13 @@
-#include <WiFi.h>  //for esp32
-// #include <ESP8266WiFi.h>  //for esp8266
+// #include <WiFi.h>  //for esp32
+#include <ESP8266WiFi.h>  //for esp8266
 #include <PubSubClient.h>
 #include <ModbusMaster.h>
 #include "defines.h"
 #include <FS.h>
-#include <SPIFFS.h>
+// #include <SPIFFS.h>
+#include <LittleFS.h>
+#define SPIFFS LittleFS
+
 
 
 // ------------------------------------memory functions--------------------------------
@@ -314,7 +317,7 @@ void setup() {
       frame = SERIAL_8O2;
     else if (config[2] == "SERIAL_8E1")
       frame = SERIAL_8E1;
-    else if (config[2] == "SERIAL_8E1")
+    else if (config[2] == "SERIAL_8E2")
       frame = SERIAL_8E2;
 
     // إعدادات Modbus
