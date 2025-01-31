@@ -151,7 +151,7 @@ def add_port(port_name, mode, config):
     cursor.execute("INSERT INTO ports (name, mode, config) VALUES (?, ?, ?)", (port_name, mode, config))
     conn.commit()
     conn.close()
-    return "port added successfully."
+    return "Port added successfully."
 
 def remove_port(port_name):
     conn = create_connection()
@@ -191,7 +191,7 @@ def update_port(port_name, mode, config):
     cursor.execute("UPDATE ports SET mode = ?, config = ? WHERE name = ?", (mode, config, port_name))
     conn.commit()
     conn.close()
-    return "port updated successfully."
+    return "Port updated successfully."
 
 def is_port_name_unique(port_name):
     conn = create_connection()

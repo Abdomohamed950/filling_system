@@ -111,6 +111,15 @@ class AdminInterface(QtWidgets.QWidget):
             self.register_address_entry = QtWidgets.QLineEdit()
             self.register_address_entry.setPlaceholderText("Register Address")
 
+            self.first_close_time_entry = QtWidgets.QLineEdit()
+            self.first_close_time_entry.setPlaceholderText("First Close Time")
+            self.second_close_time_entry = QtWidgets.QLineEdit()
+            self.second_close_time_entry.setPlaceholderText("Second Close Time")
+            self.first_close_lag_entry = QtWidgets.QLineEdit()
+            self.first_close_lag_entry.setPlaceholderText("First Close Lag")
+            self.second_close_lag_entry = QtWidgets.QLineEdit()
+            self.second_close_lag_entry.setPlaceholderText("Second Close Lag")
+
             self.dynamic_settings_layout.addWidget(QtWidgets.QLabel("Baudrate:"))
             self.dynamic_settings_layout.addWidget(self.baudrate_list)
             self.dynamic_settings_layout.addWidget(QtWidgets.QLabel("Frame:"))
@@ -119,6 +128,10 @@ class AdminInterface(QtWidgets.QWidget):
             self.dynamic_settings_layout.addWidget(self.endian_list)
             self.dynamic_settings_layout.addWidget(self.slave_address_entry)
             self.dynamic_settings_layout.addWidget(self.register_address_entry)
+            self.dynamic_settings_layout.addWidget(self.first_close_time_entry)
+            self.dynamic_settings_layout.addWidget(self.second_close_time_entry)
+            self.dynamic_settings_layout.addWidget(self.first_close_lag_entry)
+            self.dynamic_settings_layout.addWidget(self.second_close_lag_entry)
 
         elif mode == "milli ampere":
             # Add milli ampere-specific fields
@@ -129,16 +142,42 @@ class AdminInterface(QtWidgets.QWidget):
             self.resistor_value_entry = QtWidgets.QLineEdit()
             self.resistor_value_entry.setPlaceholderText("Resistor Value")
 
+            self.first_close_time_entry = QtWidgets.QLineEdit()
+            self.first_close_time_entry.setPlaceholderText("First Close Time")
+            self.second_close_time_entry = QtWidgets.QLineEdit()
+            self.second_close_time_entry.setPlaceholderText("Second Close Time")
+            self.first_close_lag_entry = QtWidgets.QLineEdit()
+            self.first_close_lag_entry.setPlaceholderText("First Close Lag")
+            self.second_close_lag_entry = QtWidgets.QLineEdit()
+            self.second_close_lag_entry.setPlaceholderText("Second Close Lag")
+
             self.dynamic_settings_layout.addWidget(self.min_entry)
             self.dynamic_settings_layout.addWidget(self.max_entry)
             self.dynamic_settings_layout.addWidget(self.resistor_value_entry)
+            self.dynamic_settings_layout.addWidget(self.first_close_time_entry)
+            self.dynamic_settings_layout.addWidget(self.second_close_time_entry)
+            self.dynamic_settings_layout.addWidget(self.first_close_lag_entry)
+            self.dynamic_settings_layout.addWidget(self.second_close_lag_entry)
 
         elif mode == "pulse":
             # Add pulse-specific fields
             self.liter_per_pulse_entry = QtWidgets.QLineEdit()
             self.liter_per_pulse_entry.setPlaceholderText("Liter per Pulse")
 
+            self.first_close_time_entry = QtWidgets.QLineEdit()
+            self.first_close_time_entry.setPlaceholderText("First Close Time")
+            self.second_close_time_entry = QtWidgets.QLineEdit()
+            self.second_close_time_entry.setPlaceholderText("Second Close Time")
+            self.first_close_lag_entry = QtWidgets.QLineEdit()
+            self.first_close_lag_entry.setPlaceholderText("First Close Lag")
+            self.second_close_lag_entry = QtWidgets.QLineEdit()
+            self.second_close_lag_entry.setPlaceholderText("Second Close Lag")
+
             self.dynamic_settings_layout.addWidget(self.liter_per_pulse_entry)
+            self.dynamic_settings_layout.addWidget(self.first_close_time_entry)
+            self.dynamic_settings_layout.addWidget(self.second_close_time_entry)
+            self.dynamic_settings_layout.addWidget(self.first_close_lag_entry)
+            self.dynamic_settings_layout.addWidget(self.second_close_lag_entry)
 
 
     def center(self):
@@ -297,8 +336,8 @@ class AdminInterface(QtWidgets.QWidget):
 
     def add_port_action(self, dialog, port_name, mode, config):
         if mode == "modbus":
-            baudrate, frame, endian, slave_address, register_address = config.split(',')
-            if port_name and baudrate and frame and endian and slave_address and register_address:
+            baudrate, frame, endian, slave_address, register_address, first_close_time, second_close_time, first_close_lag, second_close_lag = config.split(',')
+            if port_name and baudrate and frame and endian and slave_address and register_address and first_close_time and second_close_time and first_close_lag and second_close_lag:
                 if is_port_name_unique(port_name):
                     result = add_port(port_name, mode, config)
                     QtWidgets.QMessageBox.information(self, "Result", result)
@@ -309,8 +348,8 @@ class AdminInterface(QtWidgets.QWidget):
             else:
                 QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
         elif mode == "milli ampere":
-            min_value, max_value, resistor_value = config.split(',')
-            if port_name and min_value and max_value and resistor_value:
+            min_value, max_value, resistor_value, first_close_time, second_close_time, first_close_lag, second_close_lag = config.split(',')
+            if port_name and min_value and max_value and resistor_value and first_close_time and second_close_time and first_close_lag and second_close_lag:
                 if is_port_name_unique(port_name):
                     result = add_port(port_name, mode, config)
                     QtWidgets.QMessageBox.information(self, "Result", result)
@@ -321,8 +360,8 @@ class AdminInterface(QtWidgets.QWidget):
             else:
                 QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
         elif mode == "pulse":
-            liter_per_pulse = config
-            if port_name and liter_per_pulse:
+            liter_per_pulse, first_close_time, second_close_time, first_close_lag, second_close_lag = config.split(',')
+            if port_name and liter_per_pulse and first_close_time and second_close_time and first_close_lag and second_close_lag:
                 if is_port_name_unique(port_name):
                     result = add_port(port_name, mode, config)
                     QtWidgets.QMessageBox.information(self, "Result", result)
@@ -344,8 +383,12 @@ class AdminInterface(QtWidgets.QWidget):
                 endian = self.endian_list.currentText()
                 slave_address = self.slave_address_entry.text()
                 register_address = self.register_address_entry.text()
-                if port_name and baudrate and frame and endian and slave_address and register_address:
-                    result = update_port(port_name, mode, config=f"{baudrate},{frame},{endian},{slave_address},{register_address}")
+                first_close_time = self.first_close_time_entry.text()
+                second_close_time = self.second_close_time_entry.text()
+                first_close_lag = self.first_close_lag_entry.text()
+                second_close_lag = self.second_close_lag_entry.text()
+                if port_name and baudrate and frame and endian and slave_address and register_address and first_close_time and second_close_time and first_close_lag and second_close_lag:
+                    result = update_port(port_name, mode, config=f"{baudrate},{frame},{endian},{slave_address},{register_address},{first_close_time},{second_close_time},{first_close_lag},{second_close_lag}")
                     QtWidgets.QMessageBox.information(self, "Result", result)
                     self.list_ports_action()
                     self.clear_fields()
@@ -355,8 +398,12 @@ class AdminInterface(QtWidgets.QWidget):
                 min_value = self.min_entry.text()
                 max_value = self.max_entry.text()
                 resistor_value = self.resistor_value_entry.text()
-                if port_name and min_value and max_value and resistor_value:
-                    result = update_port(port_name, mode, config=f"{min_value},{max_value},{resistor_value}")
+                first_close_time = self.first_close_time_entry.text()
+                second_close_time = self.second_close_time_entry.text()
+                first_close_lag = self.first_close_lag_entry.text()
+                second_close_lag = self.second_close_lag_entry.text()
+                if port_name and min_value and max_value and resistor_value and first_close_time and second_close_time and first_close_lag and second_close_lag:
+                    result = update_port(port_name, mode, config=f"{min_value},{max_value},{resistor_value},{first_close_time},{second_close_time},{first_close_lag},{second_close_lag}")
                     QtWidgets.QMessageBox.information(self, "Result", result)
                     self.list_ports_action()
                     self.clear_fields()
@@ -364,8 +411,12 @@ class AdminInterface(QtWidgets.QWidget):
                     QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
             elif mode == "pulse":
                 liter_per_pulse = self.liter_per_pulse_entry.text()
-                if port_name and liter_per_pulse:
-                    result = update_port(port_name, mode, config=liter_per_pulse)
+                first_close_time = self.first_close_time_entry.text()
+                second_close_time = self.second_close_time_entry.text()
+                first_close_lag = self.first_close_lag_entry.text()
+                second_close_lag = self.second_close_lag_entry.text()
+                if port_name and liter_per_pulse and first_close_time and second_close_time and first_close_lag and second_close_lag:
+                    result = update_port(port_name, mode, config=f"{liter_per_pulse},{first_close_time},{second_close_time},{first_close_lag},{second_close_lag}")
                     QtWidgets.QMessageBox.information(self, "Result", result)
                     self.list_ports_action()
                     self.clear_fields()
@@ -387,11 +438,11 @@ class AdminInterface(QtWidgets.QWidget):
             config_label = QtWidgets.QLabel(f"Configuration: {config}")
             config_labels = config.split(',')
             if mode == "modbus":
-                labels = ["Baudrate:", "Frame:", "Endian:", "Slave Address:", "Register Address:"]
+                labels = ["Baudrate:", "Frame:", "Endian:", "Slave Address:", "Register Address:", "First Close Time:", "Second Close Time:", "First Close Lag:", "Second Close Lag:"]
             elif mode == "milli ampere":
-                labels = ["Min Value:", "Max Value:", "Resistor Value:"]
+                labels = ["Min Value:", "Max Value:", "Resistor Value:", "First Close Time:", "Second Close Time:", "First Close Lag:", "Second Close Lag:"]
             elif mode == "pulse":
-                labels = ["Liter per Pulse:"]
+                labels = ["Liter per Pulse:", "First Close Time:", "Second Close Time:", "First Close Lag:", "Second Close Lag:"]
             else:
                 labels = []
 
@@ -524,6 +575,18 @@ class AdminInterface(QtWidgets.QWidget):
             register_address_entry = QtWidgets.QLineEdit(config_values[4] if len(config_values) > 4 else "")
             register_address_entry.setPlaceholderText("Register Address")
 
+            first_close_time_entry = QtWidgets.QLineEdit(config_values[5] if len(config_values) > 5 else "")
+            first_close_time_entry.setPlaceholderText("First Close Time")
+
+            second_close_time_entry = QtWidgets.QLineEdit(config_values[6] if len(config_values) > 6 else "")
+            second_close_time_entry.setPlaceholderText("Second Close Time")
+
+            first_close_lag_entry = QtWidgets.QLineEdit(config_values[7] if len(config_values) > 7 else "")
+            first_close_lag_entry.setPlaceholderText("First Close Lag")
+
+            second_close_lag_entry = QtWidgets.QLineEdit(config_values[8] if len(config_values) > 8 else "")
+            second_close_lag_entry.setPlaceholderText("Second Close Lag")
+
             self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("Baudrate:"))
             self.dialog_dynamic_settings_layout.addWidget(baudrate_list)
             self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("Frame:"))
@@ -532,6 +595,10 @@ class AdminInterface(QtWidgets.QWidget):
             self.dialog_dynamic_settings_layout.addWidget(endian_list)
             self.dialog_dynamic_settings_layout.addWidget(slave_address_entry)
             self.dialog_dynamic_settings_layout.addWidget(register_address_entry)
+            self.dialog_dynamic_settings_layout.addWidget(first_close_time_entry)
+            self.dialog_dynamic_settings_layout.addWidget(second_close_time_entry)
+            self.dialog_dynamic_settings_layout.addWidget(first_close_lag_entry)
+            self.dialog_dynamic_settings_layout.addWidget(second_close_lag_entry)
 
         elif mode == "milli ampere":
             min_entry = QtWidgets.QLineEdit(config_values[0] if len(config_values) > 0 else "")
@@ -543,15 +610,47 @@ class AdminInterface(QtWidgets.QWidget):
             resistor_value_entry = QtWidgets.QLineEdit(config_values[2] if len(config_values) > 2 else "")
             resistor_value_entry.setPlaceholderText("Resistor Value")
 
+            first_close_time_entry = QtWidgets.QLineEdit(config_values[3] if len(config_values) > 3 else "")
+            first_close_time_entry.setPlaceholderText("First Close Time")
+
+            second_close_time_entry = QtWidgets.QLineEdit(config_values[4] if len(config_values) > 4 else "")
+            second_close_time_entry.setPlaceholderText("Second Close Time")
+
+            first_close_lag_entry = QtWidgets.QLineEdit(config_values[5] if len(config_values) > 5 else "")
+            first_close_lag_entry.setPlaceholderText("First Close Lag")
+
+            second_close_lag_entry = QtWidgets.QLineEdit(config_values[6] if len(config_values) > 6 else "")
+            second_close_lag_entry.setPlaceholderText("Second Close Lag")
+
             self.dialog_dynamic_settings_layout.addWidget(min_entry)
             self.dialog_dynamic_settings_layout.addWidget(max_entry)
             self.dialog_dynamic_settings_layout.addWidget(resistor_value_entry)
+            self.dialog_dynamic_settings_layout.addWidget(first_close_time_entry)
+            self.dialog_dynamic_settings_layout.addWidget(second_close_time_entry)
+            self.dialog_dynamic_settings_layout.addWidget(first_close_lag_entry)
+            self.dialog_dynamic_settings_layout.addWidget(second_close_lag_entry)
 
         elif mode == "pulse":
             liter_per_pulse_entry = QtWidgets.QLineEdit(config_values[0] if len(config_values) > 0 else "")
             liter_per_pulse_entry.setPlaceholderText("Liter per Pulse")
 
+            first_close_time_entry = QtWidgets.QLineEdit(config_values[1] if len(config_values) > 1 else "")
+            first_close_time_entry.setPlaceholderText("First Close Time")
+
+            second_close_time_entry = QtWidgets.QLineEdit(config_values[2] if len(config_values) > 2 else "")
+            second_close_time_entry.setPlaceholderText("Second Close Time")
+
+            first_close_lag_entry = QtWidgets.QLineEdit(config_values[3] if len(config_values) > 3 else "")
+            first_close_lag_entry.setPlaceholderText("First Close Lag")
+
+            second_close_lag_entry = QtWidgets.QLineEdit(config_values[4] if len(config_values) > 4 else "")
+            second_close_lag_entry.setPlaceholderText("Second Close Lag")
+
             self.dialog_dynamic_settings_layout.addWidget(liter_per_pulse_entry)
+            self.dialog_dynamic_settings_layout.addWidget(first_close_time_entry)
+            self.dialog_dynamic_settings_layout.addWidget(second_close_time_entry)
+            self.dialog_dynamic_settings_layout.addWidget(first_close_lag_entry)
+            self.dialog_dynamic_settings_layout.addWidget(second_close_lag_entry)
 
     def get_dialog_config(self):
         config = []
