@@ -116,6 +116,23 @@ void flowmeter_reader() {
 }
 
 
+float flow_rate_reader() {
+  uint32_t value;
+  result = node.readHoldingRegisters(1999, REG_IN_ROW);  
+
+  if (result == node.ku8MBSuccess) {
+    DATA[0] = node.getResponseBuffer(0);
+    DATA[1] = node.getResponseBuffer(1);
+    if (config[3] == "AABBCCDD")
+      value = AABBCCDD(DATA[0], DATA[1]);
+
+    int2f int2f_obj;
+    int2f_obj.intVal = value;
+    return int2f_obj.f;
+  }
+}
+
+
 
 // ------------------------------------valve functions-------------------------------
 void RelayOpenDC(void) {
@@ -358,8 +375,9 @@ void loop() {
     client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
 
     if (is_running && result == node.ku8MBSuccess) {
-      // flow_meter_value += random(1,5);
+      float FlowRate = flow_rate_reader();
       remain_Quantity = (flow_meter_prev_value + required_Quantity - flow_meter_value);
+      double ExtraWater = (FlowRate / 2.0) * thirdCloseTime;
 
       if (remain_Quantity <= firstCloseLagV && firstCloseStatus == 0) {
         RelayCloseDC(firstCloseTime);
@@ -371,12 +389,13 @@ void loop() {
         secondCloseStatus = 1;
       }
 
-      else if (remain_Quantity <= thirdCloseLagV && thirdCloseStatus == 0) {
+      else if (remain_Quantity-ExtraWater <= 0 && thirdCloseStatus == 0) {
         RelayCloseDC(thirdCloseTime);
         thirdCloseStatus = 1;
         force_stop = 0;
         client.publish((String(truck_id) + "/state").c_str(), "stop");
       }
+
     }
   }
 }

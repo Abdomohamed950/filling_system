@@ -142,6 +142,7 @@ class OperatorInterface(QtWidgets.QWidget):
                 log_action("station_name", port_name, self.operator_name, truck_number, receipt_number, quantity, None, None, timestamp, None)                
                 self.mqtt_client.publish(f"{port_name}/logdata", operator_id + "," + truck_number + "," + receipt_number + "," + quantity + "," + timestamp)
                 self.mqtt_client.publish(f"{port_name}/quantity", quantity)
+                self.mqtt_client.publish(f"{port_name}/state", "start")
             else :
                     QtWidgets.QMessageBox.critical(self, "Error", "Port is already filling")
         else:
@@ -252,8 +253,7 @@ class OperatorInterface(QtWidgets.QWidget):
             port_name = topic.split('/')[0]
             state = payload
             store_port_data_from_mqtt(port_name, None, state)
-            if state == "filling":
-                self.mqtt_client.publish(f"{port_name}/state", "start")
+            if state == "filling":                
                 self.disable_card_fields(port_name)
             elif state == "stop":
                 chanel_truck_number, chanel_operator_id, chanel_receipt_number, chanel_required_quantity, chanel_actual_quantity, chanel_flowmeter= get_channel_entry(port_name)
