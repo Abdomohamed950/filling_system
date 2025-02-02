@@ -45,7 +45,7 @@ uint16_t result = 1;
 volatile float flow_meter_value = 0;
 volatile float flow_meter_prev_value = 0;
 float remain_Quantity;
-int required_Quantity = 0;
+float required_Quantity = 0;
 bool is_running = false;
 bool updated = true;
 String logdata = "";

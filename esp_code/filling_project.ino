@@ -209,7 +209,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   if (topicStr == String(truck_id) + "/quantity") {
 
-    required_Quantity = message.toInt();
+    required_Quantity = message.toFloat();
     flow_meter_prev_value = flow_meter_value;
     Serial.print("Target quantity set to: ");
     Serial.println(required_Quantity);
@@ -376,6 +376,7 @@ void loop() {
 
     if (is_running && result == node.ku8MBSuccess) {
       float FlowRate = flow_rate_reader();
+      Serial.println(FlowRate);
       remain_Quantity = (flow_meter_prev_value + required_Quantity - flow_meter_value);
       double ExtraWater = (FlowRate / 2.0) * thirdCloseTime;
 
