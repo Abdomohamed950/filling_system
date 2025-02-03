@@ -28,14 +28,14 @@ class OperatorInterface(QtWidgets.QWidget):
         self.update_flowmeter_signal.connect(self.update_flowmeter_readings)
 
     def init_ui(self):
-        self.setWindowTitle(f"Water Filling System - Operator: {self.operator_name}")
+        self.setWindowTitle(f"نظام تعبئة المياه - المشغل: {self.operator_name}")
         self.showFullScreen()  # Make the window full screen
 
-        manual_radio = QtWidgets.QRadioButton("Manual")
+        manual_radio = QtWidgets.QRadioButton("يدوي")
         manual_radio.setChecked(True)
         manual_radio.toggled.connect(lambda: self.change_mode("manual"))
 
-        barcode_radio = QtWidgets.QRadioButton("Barcode")
+        barcode_radio = QtWidgets.QRadioButton("باركود")
         barcode_radio.toggled.connect(lambda: self.change_mode("barcode"))
 
         layout = QtWidgets.QVBoxLayout()
@@ -51,7 +51,7 @@ class OperatorInterface(QtWidgets.QWidget):
         scroll_area.setWidget(scroll_content)
         layout.addWidget(scroll_area)
 
-        logout_button = QtWidgets.QPushButton("Logout", self)
+        logout_button = QtWidgets.QPushButton("تسجيل الخروج", self)
         logout_button.clicked.connect(self.logout_action)
         layout.addWidget(logout_button)
 
@@ -69,35 +69,35 @@ class OperatorInterface(QtWidgets.QWidget):
             card = QtWidgets.QGroupBox(port_name)            
             card_layout = QtWidgets.QVBoxLayout()
 
-            truck_number_label = QtWidgets.QLabel("truck number:", self)
+            truck_number_label = QtWidgets.QLabel("رقم الشاحنة:", self)
             truck_number_entry = QtWidgets.QLineEdit()
             truck_number_entry.setObjectName("truck_number_entry")
-            truck_number_entry.setPlaceholderText("Enter truck number")
+            truck_number_entry.setPlaceholderText("أدخل رقم الشاحنة")
 
-            receipt_number_label = QtWidgets.QLabel("receipt number:", self)
+            receipt_number_label = QtWidgets.QLabel("رقم الإيصال:", self)
             receipt_number_entry = QtWidgets.QLineEdit()
             receipt_number_entry.setObjectName("receipt_number_entry")
-            receipt_number_entry.setPlaceholderText("Enter receipt number")
+            receipt_number_entry.setPlaceholderText("أدخل رقم الإيصال")
 
-            target_quantity_label = QtWidgets.QLabel("target quantity:", self)
+            target_quantity_label = QtWidgets.QLabel("الكمية المطلوبة:", self)
             add_quantity_entry = QtWidgets.QLineEdit()
             add_quantity_entry.setObjectName("add_quantity_entry")
-            add_quantity_entry.setPlaceholderText("Enter quantity to add")
+            add_quantity_entry.setPlaceholderText("أدخل الكمية المراد إضافتها")
 
-            actual_quantity_label = QtWidgets.QLabel("Actual Quantity: 0")
+            actual_quantity_label = QtWidgets.QLabel("الكمية الفعلية: 0")
             actual_quantity_label.setObjectName("Actual Quantity")
 
-            flow_meter_reading_label = QtWidgets.QLabel("Flow Meter Reading: 0")
+            flow_meter_reading_label = QtWidgets.QLabel("قراءة عداد التدفق: 0")
             flow_meter_reading_label.setObjectName("Flow Meter Reading")
 
             progress_bar = QtWidgets.QProgressBar()
             progress_bar.setRange(0, 100)
             progress_bar.setObjectName("progress_bar")
 
-            start_button = QtWidgets.QPushButton("Start")
+            start_button = QtWidgets.QPushButton("ابدأ")
             start_button.clicked.connect(lambda _, pn=port_name, aqe=add_quantity_entry, rne=receipt_number_entry, tne=truck_number_entry: self.start_filling(pn, aqe, rne, tne))
 
-            stop_button = QtWidgets.QPushButton("Stop")
+            stop_button = QtWidgets.QPushButton("توقف")
             stop_button.clicked.connect(lambda _, pn=port_name: self.stop_filling(pn))
 
             form_layout = QtWidgets.QFormLayout()
@@ -144,9 +144,9 @@ class OperatorInterface(QtWidgets.QWidget):
                 self.mqtt_client.publish(f"{port_name}/quantity", quantity)
                 self.mqtt_client.publish(f"{port_name}/state", "start")
             else :
-                    QtWidgets.QMessageBox.critical(self, "Error", "Port is already filling")
+                    QtWidgets.QMessageBox.critical(self, "خطأ", "المنفذ قيد التعبئة بالفعل")
         else:
-            QtWidgets.QMessageBox.critical(self, "Error", "Please fill all fields")
+            QtWidgets.QMessageBox.critical(self, "خطأ", "يرجى ملء جميع الحقول")
 
     def stop_filling(self, port_name):
         chanel_truck_number, chanel_operator_id, chanel_receipt_number, chanel_required_quantity, chanel_actual_quantity, chanel_flowmeter= get_channel_entry(port_name)
