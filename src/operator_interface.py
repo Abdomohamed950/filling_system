@@ -38,7 +38,7 @@ class OperatorInterface(QtWidgets.QWidget):
 
         # Add the logo image
         logo_label = QtWidgets.QLabel(self)
-        logo_pixmap = QtGui.QPixmap("/home/abdo/filling_system/src/logo.png")  # Replace with the path to your logo image
+        logo_pixmap = QtGui.QPixmap("src/logo.png")  # Replace with the path to your logo image
         logo_pixmap = logo_pixmap.scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio)  # Resize the logo
         logo_label.setPixmap(logo_pixmap)
         logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
