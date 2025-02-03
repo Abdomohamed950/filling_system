@@ -1,4 +1,5 @@
 from PyQt6.QtWidgets import QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+from PyQt6 import QtGui, QtCore
 
 class LoginWindow(QMainWindow):
     def __init__(self):
@@ -11,6 +12,13 @@ class LoginWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         layout = QVBoxLayout()
+
+        # Add the logo image
+        logo_label = QLabel(self)
+        logo_pixmap = QtGui.QPixmap("/home/abdo/filling_system/src/logo.png") 
+        logo_label.setPixmap(logo_pixmap)
+        logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(logo_label)
 
         self.label = QLabel("Enter Password:")
         layout.addWidget(self.label)
