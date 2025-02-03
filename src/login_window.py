@@ -16,6 +16,7 @@ class LoginWindow(QMainWindow):
         # Add the logo image
         logo_label = QLabel(self)
         logo_pixmap = QtGui.QPixmap("/home/abdo/filling_system/src/logo.png") 
+        logo_pixmap = logo_pixmap.scaled(250, 250, QtCore.Qt.AspectRatioMode.KeepAspectRatio)  # Resize the logo
         logo_label.setPixmap(logo_pixmap)
         logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(logo_label)

@@ -172,7 +172,7 @@ def list_ports():
 def get_ports():
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT name, mode, config FROM ports')
+    cursor.execute('SELECT name, mode, config FROM ports ORDER BY name ASC')
     ports = cursor.fetchall()
     conn.close()
     return ports

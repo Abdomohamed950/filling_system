@@ -222,11 +222,13 @@ class AdminInterface(QtWidgets.QWidget):
 
         for idx, operator in enumerate(operators):
             operator_name, operator_id = operator[0], operator[2]
-            card = QtWidgets.QGroupBox(operator_name)
-            card.setFixedSize(300, 300)  # Set fixed size for each card
+            card = QtWidgets.QGroupBox()            
             card_layout = QtWidgets.QVBoxLayout()
 
-            id_label = QtWidgets.QLabel(f"المعرف: {operator_id}")
+            name_label = QtWidgets.QLabel(operator_name)
+            name_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            id_label = QtWidgets.QLabel(f"الكود: {operator_id}")
+            id_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
             edit_button = QtWidgets.QPushButton("تعديل")
             edit_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileDialogContentsView))
@@ -240,22 +242,24 @@ class AdminInterface(QtWidgets.QWidget):
             button_layout.addWidget(edit_button)
             button_layout.addWidget(remove_button)
 
+            card_layout.addWidget(name_label)
             card_layout.addWidget(id_label)
             card_layout.addLayout(button_layout)
 
             card.setLayout(card_layout)
-            self.operator_cards_layout.addWidget(card, idx // 5, idx % 5)  # Arrange cards in a grid with 5 cards per row
+            card.setFixedSize(400, 150)  # Set fixed size for each card
+            self.operator_cards_layout.addWidget(card, idx // 3, idx % 3)  # Arrange cards in a grid with 5 cards per row
 
         # Add a card for adding a new operator
         add_card = QtWidgets.QGroupBox("إضافة مشغل جديد")
-        add_card.setFixedSize(300, 300)  # Set fixed size for the add card
+        card.setFixedSize(400, 150)  # Set fixed size for each card
         add_card_layout = QtWidgets.QVBoxLayout()
         add_button = QtWidgets.QPushButton("إضافة مشغل")
         add_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileDialogNewFolder))
         add_button.clicked.connect(self.show_add_operator_dialog)
         add_card_layout.addWidget(add_button)
         add_card.setLayout(add_card_layout)
-        self.operator_cards_layout.addWidget(add_card, len(operators) // 5, len(operators) % 5)  # Place the add card in the next available slot
+        self.operator_cards_layout.addWidget(add_card, len(operators) // 3, len(operators) % 3)  # Place the add card in the next available slot
 
     def show_add_operator_dialog(self):
         dialog = QtWidgets.QDialog(self)
@@ -266,7 +270,7 @@ class AdminInterface(QtWidgets.QWidget):
         operator_name_label = QtWidgets.QLabel("اسم المشغل:")
         operator_name_entry = QtWidgets.QLineEdit()
 
-        operator_id_label = QtWidgets.QLabel("معرف المشغل:")
+        operator_id_label = QtWidgets.QLabel("كود المشغل:")
         operator_id_entry = QtWidgets.QLineEdit()
 
         operator_password_label = QtWidgets.QLabel("كلمة مرور المشغل:")
@@ -300,7 +304,7 @@ class AdminInterface(QtWidgets.QWidget):
         operator_name_label = QtWidgets.QLabel("اسم المشغل:")
         operator_name_entry = QtWidgets.QLineEdit(operator_name)
 
-        operator_id_label = QtWidgets.QLabel("معرف المشغل:")
+        operator_id_label = QtWidgets.QLabel("كود المشغل:")
         operator_id_entry = QtWidgets.QLineEdit(operator_id)
 
         operator_password_label = QtWidgets.QLabel("كلمة مرور المشغل:")
@@ -431,24 +435,23 @@ class AdminInterface(QtWidgets.QWidget):
         for idx, port in enumerate(ports):
             port_name, mode, config = port
             card = QtWidgets.QGroupBox(port_name)
-            card.setFixedSize(300, 300)  # Set fixed size for each card
+            card.setFixedSize(300, 350)  # Set fixed size for each card
             card_layout = QtWidgets.QVBoxLayout()
 
-            mode_label = QtWidgets.QLabel(f"الوضع: {mode}")
-            config_label = QtWidgets.QLabel(f"الإعدادات: {config}")
+            table_layout = QtWidgets.QGridLayout()
             config_labels = config.split(',')
             if mode == "modbus":
-                labels = ["معدل البود:", "الإطار:", "Endian:", "عنوان العبد:", "عنوان السجل:", "وقت الإغلاق الأول:", "وقت الإغلاق الثاني:", "تأخير الإغلاق الأول:", "تأخير الإغلاق الثاني:"]
+                labels = ["baud rate:", "frame:", "Endian:", "slave id:", "register address:", "firstCloseTime:", "secondCloseTime:", "firstCloseLagV:", "secondCloseLagV:"]
             elif mode == "milli ampere":
-                labels = ["القيمة الدنيا:", "القيمة القصوى:", "قيمة المقاومة:", "وقت الإغلاق الأول:", "وقت الإغلاق الثاني:", "تأخير الإغلاق الأول:", "تأخير الإغلاق الثاني:"]
+                labels = ["min value:", "max value:", "resistor value:", "firstCloseTime:", "secondCloseTime:", "firstCloseLagV:", "secondCloseLagV:"]
             elif mode == "pulse":
-                labels = ["لتر لكل نبضة:", "وقت الإغلاق الأول:", "وقت الإغلاق الثاني:", "تأخير الإغلاق الأول:", "تأخير الإغلاق الثاني:"]
+                labels = ["pulse per letter:", "firstCloseTime:", "secondCloseTime:", "firstCloseLagV:", "secondCloseLagV:"]
             else:
                 labels = []
 
-            for label, value in zip(labels, config_labels):
-                config_label = QtWidgets.QLabel(f"{label} {value}")
-                card_layout.addWidget(config_label)
+            for row, (label, value) in enumerate(zip(labels, config_labels)):
+                table_layout.addWidget(QtWidgets.QLabel(label), row, 0)
+                table_layout.addWidget(QtWidgets.QLabel(value), row, 1)
 
             edit_button = QtWidgets.QPushButton("تعديل")
             edit_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileDialogContentsView))
@@ -462,8 +465,7 @@ class AdminInterface(QtWidgets.QWidget):
             button_layout.addWidget(edit_button)
             button_layout.addWidget(remove_button)
 
-            card_layout.addWidget(mode_label)
-            card_layout.addWidget(config_label)
+            card_layout.addLayout(table_layout)
             card_layout.addLayout(button_layout)
 
             card.setLayout(card_layout)
@@ -489,7 +491,7 @@ class AdminInterface(QtWidgets.QWidget):
         port_name_label = QtWidgets.QLabel("اسم المنفذ:")
         port_name_entry = QtWidgets.QLineEdit()
 
-        mode_label = QtWidgets.QLabel("الوضع:")
+        mode_label = QtWidgets.QLabel("mode:")
         mode_entry = QtWidgets.QComboBox()
         mode_entry.addItems(["modbus", "milli ampere", "pulse"])
         mode_entry.currentIndexChanged.connect(lambda: self.update_dialog_settings(dialog, mode_entry.currentText(), ""))
@@ -524,7 +526,7 @@ class AdminInterface(QtWidgets.QWidget):
         port_name_entry = QtWidgets.QLineEdit(port_name)
         port_name_entry.setReadOnly(True)
 
-        mode_label = QtWidgets.QLabel("الوضع:")
+        mode_label = QtWidgets.QLabel("mode:")
         mode_entry = QtWidgets.QComboBox()
         mode_entry.addItems(["modbus", "milli ampere", "pulse"])
         mode_entry.setCurrentText(mode)
@@ -570,63 +572,63 @@ class AdminInterface(QtWidgets.QWidget):
             endian_list.setCurrentText(config_values[2] if config_values else "")
 
             slave_address_entry = QtWidgets.QLineEdit(config_values[3] if len(config_values) > 3 else "")
-            slave_address_entry.setPlaceholderText("عنوان العبد")
+            slave_address_entry.setPlaceholderText("slave id")
 
             register_address_entry = QtWidgets.QLineEdit(config_values[4] if len(config_values) > 4 else "")
-            register_address_entry.setPlaceholderText("عنوان السجل")
+            register_address_entry.setPlaceholderText("register address")
 
             first_close_time_entry = QtWidgets.QLineEdit(config_values[5] if len(config_values) > 5 else "")
-            first_close_time_entry.setPlaceholderText("وقت الإغلاق الأول")
+            first_close_time_entry.setPlaceholderText("firstCloseTime")
 
             second_close_time_entry = QtWidgets.QLineEdit(config_values[6] if len(config_values) > 6 else "")
-            second_close_time_entry.setPlaceholderText("وقت الإغلاق الثاني")
+            second_close_time_entry.setPlaceholderText("secondCloseTime")
 
             first_close_lag_entry = QtWidgets.QLineEdit(config_values[7] if len(config_values) > 7 else "")
-            first_close_lag_entry.setPlaceholderText("تأخير الإغلاق الأول")
+            first_close_lag_entry.setPlaceholderText("firstCloseLagV")
 
             second_close_lag_entry = QtWidgets.QLineEdit(config_values[8] if len(config_values) > 8 else "")
-            second_close_lag_entry.setPlaceholderText("تأخير الإغلاق الثاني")
+            second_close_lag_entry.setPlaceholderText("secondCloseLagV")
 
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("معدل البود:"))
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("baud rate:"))
             self.dialog_dynamic_settings_layout.addWidget(baudrate_list)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("الإطار:"))
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("frame:"))
             self.dialog_dynamic_settings_layout.addWidget(frame_list)
             self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("Endian:"))
             self.dialog_dynamic_settings_layout.addWidget(endian_list)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("عنوان العبد:"))
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("slave id:"))
             self.dialog_dynamic_settings_layout.addWidget(slave_address_entry)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("عنوان الفراءه:"))
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("register address:"))
             self.dialog_dynamic_settings_layout.addWidget(register_address_entry)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("الوقت الاول للاغلاق:"))
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("firstCloseTime:"))
             self.dialog_dynamic_settings_layout.addWidget(first_close_time_entry)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("الوقت الثاني للاغلاق:"))
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("secondCloseTime:"))
             self.dialog_dynamic_settings_layout.addWidget(second_close_time_entry)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("تأخير الاغلاق الاول:"))
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("firstCloseLagV:"))
             self.dialog_dynamic_settings_layout.addWidget(first_close_lag_entry)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("تأخير الاغلاق الثاني:"))
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("secondCloseLagV:"))
             self.dialog_dynamic_settings_layout.addWidget(second_close_lag_entry)
 
         elif mode == "milli ampere":
             min_entry = QtWidgets.QLineEdit(config_values[0] if len(config_values) > 0 else "")
-            min_entry.setPlaceholderText("القيمة الدنيا")
+            min_entry.setPlaceholderText("min value")
 
             max_entry = QtWidgets.QLineEdit(config_values[1] if len(config_values) > 1 else "")
-            max_entry.setPlaceholderText("القيمة القصوى")
+            max_entry.setPlaceholderText("max value")
 
             resistor_value_entry = QtWidgets.QLineEdit(config_values[2] if len(config_values) > 2 else "")
-            resistor_value_entry.setPlaceholderText("قيمة المقاومة")
+            resistor_value_entry.setPlaceholderText("resistor value")
 
             first_close_time_entry = QtWidgets.QLineEdit(config_values[3] if len(config_values) > 3 else "")
-            first_close_time_entry.setPlaceholderText("وقت الإغلاق الأول")
+            first_close_time_entry.setPlaceholderText("firstCloseTime")
 
             second_close_time_entry = QtWidgets.QLineEdit(config_values[4] if len(config_values) > 4 else "")
-            second_close_time_entry.setPlaceholderText("وقت الإغلاق الثاني")
+            second_close_time_entry.setPlaceholderText("secondCloseTime")
 
             first_close_lag_entry = QtWidgets.QLineEdit(config_values[5] if len(config_values) > 5 else "")
-            first_close_lag_entry.setPlaceholderText("تأخير الإغلاق الأول")
+            first_close_lag_entry.setPlaceholderText("firstCloseLagV")
 
             second_close_lag_entry = QtWidgets.QLineEdit(config_values[6] if len(config_values) > 6 else "")
-            second_close_lag_entry.setPlaceholderText("تأخير الإغلاق الثاني")
+            second_close_lag_entry.setPlaceholderText("secondCloseLagV")
 
             self.dialog_dynamic_settings_layout.addWidget(min_entry)
             self.dialog_dynamic_settings_layout.addWidget(max_entry)
@@ -638,19 +640,19 @@ class AdminInterface(QtWidgets.QWidget):
 
         elif mode == "pulse":
             liter_per_pulse_entry = QtWidgets.QLineEdit(config_values[0] if len(config_values) > 0 else "")
-            liter_per_pulse_entry.setPlaceholderText("لتر لكل نبضة")
+            liter_per_pulse_entry.setPlaceholderText("pulse per letter")
 
             first_close_time_entry = QtWidgets.QLineEdit(config_values[1] if len(config_values) > 1 else "")
-            first_close_time_entry.setPlaceholderText("وقت الإغلاق الأول")
+            first_close_time_entry.setPlaceholderText("firstCloseTime")
 
             second_close_time_entry = QtWidgets.QLineEdit(config_values[2] if len(config_values) > 2 else "")
-            second_close_time_entry.setPlaceholderText("وقت الإغلاق الثاني")
+            second_close_time_entry.setPlaceholderText("secondCloseTime")
 
             first_close_lag_entry = QtWidgets.QLineEdit(config_values[3] if len(config_values) > 3 else "")
-            first_close_lag_entry.setPlaceholderText("تأخير الإغلاق الأول")
+            first_close_lag_entry.setPlaceholderText("firstCloseLagV")
 
             second_close_lag_entry = QtWidgets.QLineEdit(config_values[4] if len(config_values) > 4 else "")
-            second_close_lag_entry.setPlaceholderText("تأخير الإغلاق الثاني")
+            second_close_lag_entry.setPlaceholderText("secondCloseLagV")
 
             self.dialog_dynamic_settings_layout.addWidget(liter_per_pulse_entry)
             self.dialog_dynamic_settings_layout.addWidget(first_close_time_entry)
@@ -735,32 +737,24 @@ class AdminInterface(QtWidgets.QWidget):
             card = QtWidgets.QGroupBox(port_name)
             card.setFixedSize(300, 300)  # Set fixed size for each card
             card_layout = QtWidgets.QVBoxLayout()
-            
+
+            table_layout = QtWidgets.QGridLayout()
             lis = get_channel_entry(port_name)
             if lis:
-                truck_number_label = QtWidgets.QLabel(f"رقم الشاحنة: {lis[0]}")
-                operator_id_label = QtWidgets.QLabel(f"معرف المشغل: {lis[1]}")
-                receipt_number_label = QtWidgets.QLabel(f"رقم الإيصال: {lis[2]}")
-                required_quantity_label = QtWidgets.QLabel(f"الكمية المطلوبة: {lis[3]}")
-                actual_quantity_label = QtWidgets.QLabel(f"الكمية الفعلية: {lis[4]}")
-                flowmeter_label = QtWidgets.QLabel(f"عداد التدفق: {lis[5]}")
+                labels = ["رقم الشاحنة:", "كود المشغل:", "رقم الإيصال:", "الكمية المطلوبة:", "الكمية الفعلية:", "عداد التدفق:"]
+                values = [lis[0], lis[1], lis[2], lis[3], lis[4], lis[5]]
             else:
-                truck_number_label = QtWidgets.QLabel("رقم الشاحنة: غير متوفر")
-                operator_id_label = QtWidgets.QLabel("معرف المشغل: غير متوفر")
-                receipt_number_label = QtWidgets.QLabel("رقم الإيصال: غير متوفر")
-                required_quantity_label = QtWidgets.QLabel("الكمية المطلوبة: غير متوفر")
-                actual_quantity_label = QtWidgets.QLabel("الكمية الفعلية: غير متوفر")
-                flowmeter_label = QtWidgets.QLabel("عداد التدفق: غير متوفر")
+                labels = ["رقم الشاحنة:", "كود المشغل:", "رقم الإيصال:", "الكمية المطلوبة:", "الكمية الفعلية:", "عداد التدفق:"]
+                values = ["غير متوفر"] * 6
+
+            for row, (label, value) in enumerate(zip(labels, values)):
+                table_layout.addWidget(QtWidgets.QLabel(label), row, 0)
+                table_layout.addWidget(QtWidgets.QLabel(value), row, 1)
 
             edit_button = QtWidgets.QPushButton("تعديل")
             edit_button.clicked.connect(lambda _, pn=port_name: self.show_edit_channel_dialog(pn))
 
-            card_layout.addWidget(truck_number_label)
-            card_layout.addWidget(operator_id_label)
-            card_layout.addWidget(receipt_number_label)
-            card_layout.addWidget(required_quantity_label)
-            card_layout.addWidget(actual_quantity_label)
-            card_layout.addWidget(flowmeter_label)
+            card_layout.addLayout(table_layout)
             card_layout.addWidget(edit_button)
 
             card.setLayout(card_layout)
@@ -777,7 +771,7 @@ class AdminInterface(QtWidgets.QWidget):
         truck_number_label = QtWidgets.QLabel("رقم الشاحنة:")
         truck_number_entry = QtWidgets.QLineEdit(channel_entry[0] if channel_entry else "")
 
-        operator_id_label = QtWidgets.QLabel("معرف المشغل:")
+        operator_id_label = QtWidgets.QLabel("كود المشغل:")
         operator_id_entry = QtWidgets.QLineEdit(channel_entry[1] if channel_entry else "")
 
         receipt_number_label = QtWidgets.QLabel("رقم الإيصال:")

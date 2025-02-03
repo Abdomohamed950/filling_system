@@ -1,4 +1,4 @@
-from PyQt6 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtWidgets, QtGui  # Add QtGui import
 from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action, update_log_on_stop, get_logs, server_log, get_operator_id, get_channel_entry, get_config
 import threading
 import time
@@ -31,6 +31,27 @@ class OperatorInterface(QtWidgets.QWidget):
         self.setWindowTitle(f"نظام تعبئة المياه - المشغل: {self.operator_name}")
         self.showFullScreen()  # Make the window full screen
 
+        layout = QtWidgets.QVBoxLayout()
+
+        # Add a horizontal layout for the logo, clock, and radio buttons
+        top_layout = QtWidgets.QHBoxLayout()
+
+        # Add the logo image
+        logo_label = QtWidgets.QLabel(self)
+        logo_pixmap = QtGui.QPixmap("/home/abdo/filling_system/src/logo.png")  # Replace with the path to your logo image
+        logo_pixmap = logo_pixmap.scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio)  # Resize the logo
+        logo_label.setPixmap(logo_pixmap)
+        logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+        top_layout.addWidget(logo_label)
+
+        # Add the clock
+        self.clock_label = QtWidgets.QLabel(self)
+        self.clock_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.clock_label.setStyleSheet("color: #3EB489; font-size: 24px;")  # Set the color to ming green and font size
+        top_layout.addWidget(self.clock_label)
+
+        # Add the radio buttons
+        radio_layout = QtWidgets.QVBoxLayout()
         manual_radio = QtWidgets.QRadioButton("يدوي")
         manual_radio.setChecked(True)
         manual_radio.toggled.connect(lambda: self.change_mode("manual"))
@@ -38,9 +59,11 @@ class OperatorInterface(QtWidgets.QWidget):
         barcode_radio = QtWidgets.QRadioButton("باركود")
         barcode_radio.toggled.connect(lambda: self.change_mode("barcode"))
 
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(manual_radio)
-        layout.addWidget(barcode_radio)
+        radio_layout.addWidget(manual_radio)
+        radio_layout.addWidget(barcode_radio)
+        top_layout.addLayout(radio_layout)
+
+        layout.addLayout(top_layout)
 
         scroll_area = QtWidgets.QScrollArea()
         scroll_area.setWidgetResizable(True)
@@ -56,6 +79,19 @@ class OperatorInterface(QtWidgets.QWidget):
         layout.addWidget(logout_button)
 
         self.setLayout(layout)
+
+        # Start the timer to update the clock
+        self.start_clock()
+
+    def start_clock(self):
+        timer = QtCore.QTimer(self)
+        timer.timeout.connect(self.update_clock)
+        timer.start(1000)  # Update the clock every second
+        self.update_clock()  # Initial call to set the current time
+
+    def update_clock(self):
+        current_time = QtCore.QTime.currentTime().toString("hh:mm:ss")
+        self.clock_label.setText(current_time)
 
     def logout_action(self):
         self.close()
@@ -248,7 +284,7 @@ class OperatorInterface(QtWidgets.QWidget):
             port_name = topic.split('/')[0]
             flow_meter_value = payload
             store_port_data_from_mqtt(port_name, flow_meter_value, None)
-            self.update_flowmeter_signal.emit(port_name, flow_meter_value)  # Emit the signal
+            self.update_flowmeter_signal.emit(port_name, flow_meter_value) 
         elif "/state" in topic:
             port_name = topic.split('/')[0]
             state = payload
@@ -285,10 +321,40 @@ class OperatorInterface(QtWidgets.QWidget):
                 self.update_actual_quantity_label(port_name, actual_quantity)
                 self.update_progress_bar(port_name, actual_quantity)
 
+# class TankProgressBar(QtWidgets.QWidget):
+#     def __init__(self):
+#         super().__init__()
+#         self.value = 0
+#         self.initUI()
+
+#     def initUI(self):
+#         self.setGeometry(100, 100, 200, 400)
+#         self.setWindowTitle('Tank Progress Bar')
+#         self.timer = QtCore.QTimer(self)
+#         self.timer.timeout.connect(self.updateValue)
+#         self.timer.start(100)  # Update every 100 ms
+
+#     def updateValue(self):
+#         self.value += 1
+#         if self.value > 100:
+#             self.value = 0
+#         self.update()
+
+#     def paintEvent(self, event):
+#         painter = QtGui.QPainter(self)
+#         rect = QtCore.QRect(50, 50, 100, 300)
+#         painter.drawRect(rect)
+
+#         fill_height = int(3 * self.value)
+#         fill_rect = QtCore.QRect(50, 350 - fill_height, 100, fill_height)
+#         painter.fillRect(fill_rect, QtGui.QColor(0, 0, 255))
+
 if __name__ == "__main__":
     import sys
     create_table()  # Ensure tables are created
     app = QtWidgets.QApplication(sys.argv)
     operator_interface = OperatorInterface("Operator 1")
     operator_interface.show()
+    # ex = TankProgressBar()
+    # ex.show()
     sys.exit(app.exec())
