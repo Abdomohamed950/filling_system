@@ -5,11 +5,74 @@ import time
 import paho.mqtt.client as mqtt  # Import the MQTT client
 from login_window import LoginWindow  # Import LoginWindow from the new file
 
+class WaterTankWidget(QtWidgets.QWidget):
+    def __init__(self, max_level=100):
+        super().__init__()
+        self.max_level = max_level  # الحد الأقصى لمستوى الماء
+        self._water_level = 0  # المستوى الحالي
+        self.setMinimumSize(200, 400)  # حجم الواجهة
+
+    def setWaterLevel(self, level):
+        self._water_level = max(0, min(level, self.max_level))
+        self.update()  # إعادة رسم الواجهة
+
+    def getWaterLevel(self):
+        return self._water_level
+
+    waterLevel = QtCore.pyqtProperty(int, getWaterLevel, setWaterLevel)
+
+    def setMaxLevel(self, max_level):
+        self.max_level = max_level
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+
+        # إعداد فرشاة الرسم
+        painter.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0), 2))
+
+        # رسم الشكل البيضاوي العلوي
+        top_rect = QtCore.QRectF(50, 40, 100, 30)
+        painter.drawEllipse(top_rect)
+
+        # رسم الجدران الجانبية
+        painter.drawLine(50, 55, 50, 350)
+        painter.drawLine(150, 55, 150, 350)
+
+        # رسم القاعدة البيضاوية
+        bottom_rect = QtCore.QRectF(50, 340, 100, 30)
+        painter.drawEllipse(bottom_rect)
+
+        # رسم الخطوط الأفقية داخل الخزان
+        for i in range(6):
+            y = 100 + i * 40
+            painter.drawArc(50, y, 100, 20, 0, 180 * 16)  # رسم خط منحني
+
+        # حساب ارتفاع مستوى الماء
+        water_height = int((self._water_level / self.max_level) * 290)
+        water_top = 340 - water_height
+
+        # رسم مستوى الماء
+        water_path = QtGui.QPainterPath()
+        water_path.addRoundedRect(50, water_top, 100, water_height, 20, 20)
+        painter.fillPath(water_path, QtGui.QColor(0, 100, 255, 150))
+
+        # رسم تموجات على سطح الماء
+        wave_rect = QtCore.QRectF(50, water_top - 10, 100, 20)
+        painter.drawArc(wave_rect, 0, 180 * 16)
+
+        # عرض الكمية المتبقية والكمية التي تم ملؤها
+        painter.setFont(QtGui.QFont("Arial", 10))
+        painter.setPen(QtGui.QPen(QtGui.QColor(0, 255, 0), 1))  # اللون الأخضر
+        painter.drawText(50, water_top - 20, f"المملوء: {self._water_level} L")
+        painter.setPen(QtGui.QPen(QtGui.QColor(255, 0, 0), 1))  # اللون الأحمر
+        painter.drawText(50, 360, f"المتبقي: {self.max_level - self._water_level} L")
+
 class OperatorInterface(QtWidgets.QWidget):
     value = 0
     required_quantity = 0
     initial_flowmeter_value = 0
-
 
     # Define the signal correctly
     update_flowmeter_signal = QtCore.pyqtSignal(str, str)
@@ -41,7 +104,7 @@ class OperatorInterface(QtWidgets.QWidget):
         logo_pixmap = QtGui.QPixmap("src/logo.png")  # Replace with the path to your logo image
         logo_pixmap = logo_pixmap.scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio)  # Resize the logo
         logo_label.setPixmap(logo_pixmap)
-        logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+        logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         top_layout.addWidget(logo_label)
 
         # Add the clock
@@ -62,6 +125,7 @@ class OperatorInterface(QtWidgets.QWidget):
         radio_layout.addWidget(manual_radio)
         radio_layout.addWidget(barcode_radio)
         top_layout.addLayout(radio_layout)
+        top_layout.setAlignment(radio_layout, QtCore.Qt.AlignmentFlag.AlignRight)
 
         layout.addLayout(top_layout)
 
@@ -126,12 +190,11 @@ class OperatorInterface(QtWidgets.QWidget):
             flow_meter_reading_label = QtWidgets.QLabel("قراءة عداد التدفق: 0")
             flow_meter_reading_label.setObjectName("Flow Meter Reading")
 
-            progress_bar = QtWidgets.QProgressBar()
-            progress_bar.setRange(0, 100)
-            progress_bar.setObjectName("progress_bar")
+            water_tank = WaterTankWidget()
+            water_tank.setObjectName("water_tank")
 
             start_button = QtWidgets.QPushButton("ابدأ")
-            start_button.clicked.connect(lambda _, pn=port_name, aqe=add_quantity_entry, rne=receipt_number_entry, tne=truck_number_entry: self.start_filling(pn, aqe, rne, tne))
+            start_button.clicked.connect(lambda _, pn=port_name, aqe=add_quantity_entry, rne=receipt_number_entry, tne=truck_number_entry, wt=water_tank: self.start_filling(pn, aqe, rne, tne, wt))
 
             stop_button = QtWidgets.QPushButton("توقف")
             stop_button.clicked.connect(lambda _, pn=port_name: self.stop_filling(pn))
@@ -142,7 +205,7 @@ class OperatorInterface(QtWidgets.QWidget):
             form_layout.addRow(target_quantity_label, add_quantity_entry)
             form_layout.addRow(actual_quantity_label)
             form_layout.addRow(flow_meter_reading_label)
-            form_layout.addRow(progress_bar)
+            form_layout.addRow(water_tank)
             form_layout.addRow(start_button)
             form_layout.addRow(stop_button)
 
@@ -161,7 +224,7 @@ class OperatorInterface(QtWidgets.QWidget):
             self.barcode_entry.setEnabled(True)
             self.barcode_entry.setFocus()
 
-    def start_filling(self, port_name, add_quantity_entry ,receipt_number_entry, truck_number_entry):
+    def start_filling(self, port_name, add_quantity_entry ,receipt_number_entry, truck_number_entry, water_tank):
         if(add_quantity_entry.text() and truck_number_entry.text() ):        
             if( not self.is_disabled(port_name)):            
                 chanel_truck_number, chanel_operator_id, chanel_receipt_number, chanel_required_quantity, chanel_actual_quantity, chanel_flowmeter= get_channel_entry(port_name)
@@ -179,6 +242,7 @@ class OperatorInterface(QtWidgets.QWidget):
                 self.mqtt_client.publish(f"{port_name}/logdata", operator_id + "," + truck_number + "," + receipt_number + "," + quantity + "," + timestamp)
                 self.mqtt_client.publish(f"{port_name}/quantity", quantity)
                 self.mqtt_client.publish(f"{port_name}/state", "start")
+                water_tank.setMaxLevel(float(quantity))  # Set the max level of the tank to the required quantity
             else :
                     QtWidgets.QMessageBox.critical(self, "خطأ", "المنفذ قيد التعبئة بالفعل")
         else:
@@ -214,17 +278,12 @@ class OperatorInterface(QtWidgets.QWidget):
         self.mqtt_thread = threading.Thread(target=self.mqtt_client.loop_forever)
         self.mqtt_thread.start()
 
-
     def update_progress_bar(self, port_name, actual_quantity):
         for i in range(self.port_cards_layout.count()):
             card = self.port_cards_layout.itemAt(i).widget()
             if card.title() == port_name:
-                add_quantity_entry = card.findChild(QtWidgets.QLineEdit, "add_quantity_entry")
-                required_quantity = float(add_quantity_entry.text()) if add_quantity_entry.text() else 0
-                progress_bar = card.findChild(QtWidgets.QProgressBar, "progress_bar")
-                if required_quantity > 0:
-                    progress = int((actual_quantity / required_quantity) * 100)  # Convert to int
-                    progress_bar.setValue(progress)
+                water_tank = card.findChild(WaterTankWidget, "water_tank")
+                water_tank.setWaterLevel(actual_quantity)
                 break
 
     def update_flowmeter_label(self, port_name, flow_meter_value):
@@ -232,7 +291,7 @@ class OperatorInterface(QtWidgets.QWidget):
             card = self.port_cards_layout.itemAt(i).widget()
             if card.title() == port_name:
                 flow_meter_reading_label = card.findChild(QtWidgets.QLabel, "Flow Meter Reading")
-                flow_meter_reading_label.setText(f"Flow Meter Reading: {flow_meter_value}")
+                flow_meter_reading_label.setText(f"قراءة العداد: {flow_meter_value}")
                 break
 
     def update_actual_quantity_label(self, port_name, actual_quantity):
@@ -240,7 +299,7 @@ class OperatorInterface(QtWidgets.QWidget):
             card = self.port_cards_layout.itemAt(i).widget()
             if card.title() == port_name:
                 actual_quantity_label = card.findChild(QtWidgets.QLabel, "Actual Quantity")
-                actual_quantity_label.setText(f"Actual Quantity: {actual_quantity}")
+                actual_quantity_label.setText(f"الكميه الفعليه: {actual_quantity}")
                 break
 
     def disable_card_fields(self, port_name):
@@ -248,9 +307,7 @@ class OperatorInterface(QtWidgets.QWidget):
             card = self.port_cards_layout.itemAt(i).widget()
             if card.title() == port_name:
                 for child in card.findChildren(QtWidgets.QWidget):
-                    if isinstance(child, QtWidgets.QPushButton) and child.text() == "Stop":
-                        if child.objectName() in ["Actual Quantity", "Flow Meter Reading", "progress_bar"]:
-                            continue
+                    if isinstance(child, QtWidgets.QPushButton) and child.text() == "توقف":
                         continue
                     child.setDisabled(True)
                 break
@@ -321,33 +378,6 @@ class OperatorInterface(QtWidgets.QWidget):
                 self.update_actual_quantity_label(port_name, actual_quantity)
                 self.update_progress_bar(port_name, actual_quantity)
 
-# class TankProgressBar(QtWidgets.QWidget):
-#     def __init__(self):
-#         super().__init__()
-#         self.value = 0
-#         self.initUI()
-
-#     def initUI(self):
-#         self.setGeometry(100, 100, 200, 400)
-#         self.setWindowTitle('Tank Progress Bar')
-#         self.timer = QtCore.QTimer(self)
-#         self.timer.timeout.connect(self.updateValue)
-#         self.timer.start(100)  # Update every 100 ms
-
-#     def updateValue(self):
-#         self.value += 1
-#         if self.value > 100:
-#             self.value = 0
-#         self.update()
-
-#     def paintEvent(self, event):
-#         painter = QtGui.QPainter(self)
-#         rect = QtCore.QRect(50, 50, 100, 300)
-#         painter.drawRect(rect)
-
-#         fill_height = int(3 * self.value)
-#         fill_rect = QtCore.QRect(50, 350 - fill_height, 100, fill_height)
-#         painter.fillRect(fill_rect, QtGui.QColor(0, 0, 255))
 
 if __name__ == "__main__":
     import sys
@@ -355,6 +385,4 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     operator_interface = OperatorInterface("Operator 1")
     operator_interface.show()
-    # ex = TankProgressBar()
-    # ex.show()
     sys.exit(app.exec())
