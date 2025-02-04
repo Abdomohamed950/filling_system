@@ -1,20 +1,20 @@
-from PyQt6 import QtCore, QtWidgets, QtGui  # Add QtGui import
+from PyQt6 import QtCore, QtWidgets, QtGui
 from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action, update_log_on_stop, get_logs, server_log, get_operator_id, get_channel_entry, get_config
 import threading
 import time
-import paho.mqtt.client as mqtt  # Import the MQTT client
-from login_window import LoginWindow  # Import LoginWindow from the new file
+import paho.mqtt.client as mqtt  
+from login_window import LoginWindow 
 
 class WaterTankWidget(QtWidgets.QWidget):
     def __init__(self, max_level=100):
         super().__init__()
-        self.max_level = max_level  # الحد الأقصى لمستوى الماء
-        self._water_level = 0  # المستوى الحالي
-        self.setMinimumSize(200, 400)  # حجم الواجهة
+        self.max_level = max_level  
+        self._water_level = 0 
+        self.setMinimumSize(200, 400)  
 
     def setWaterLevel(self, level):
         self._water_level = max(0, min(level, self.max_level))
-        self.update()  # إعادة رسم الواجهة
+        self.update()  
 
     def getWaterLevel(self):
         return self._water_level
@@ -29,44 +29,35 @@ class WaterTankWidget(QtWidgets.QWidget):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
-        # إعداد فرشاة الرسم
         painter.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0), 2))
 
-        # رسم الشكل البيضاوي العلوي
         top_rect = QtCore.QRectF(50, 40, 100, 30)
         painter.drawEllipse(top_rect)
 
-        # رسم الجدران الجانبية
         painter.drawLine(50, 55, 50, 350)
         painter.drawLine(150, 55, 150, 350)
 
-        # رسم القاعدة البيضاوية
         bottom_rect = QtCore.QRectF(50, 340, 100, 30)
         painter.drawEllipse(bottom_rect)
 
-        # رسم الخطوط الأفقية داخل الخزان
         for i in range(6):
             y = 100 + i * 40
-            painter.drawArc(50, y, 100, 20, 0, 180 * 16)  # رسم خط منحني
+            painter.drawArc(50, y, 100, 20, 0, 180 * 16)  
 
-        # حساب ارتفاع مستوى الماء
         water_height = int((self._water_level / self.max_level) * 290)
         water_top = 340 - water_height
 
-        # رسم مستوى الماء
         water_path = QtGui.QPainterPath()
         water_path.addRoundedRect(50, water_top, 100, water_height, 20, 20)
         painter.fillPath(water_path, QtGui.QColor(0, 100, 255, 150))
 
-        # رسم تموجات على سطح الماء
         wave_rect = QtCore.QRectF(50, water_top - 10, 100, 20)
         painter.drawArc(wave_rect, 0, 180 * 16)
 
-        # عرض الكمية المتبقية والكمية التي تم ملؤها
         painter.setFont(QtGui.QFont("Arial", 10))
-        painter.setPen(QtGui.QPen(QtGui.QColor(0, 255, 0), 1))  # اللون الأخضر
+        painter.setPen(QtGui.QPen(QtGui.QColor(0, 255, 0), 1))  
         painter.drawText(50, water_top - 20, f"المملوء: {self._water_level} L")
-        painter.setPen(QtGui.QPen(QtGui.QColor(255, 0, 0), 1))  # اللون الأحمر
+        painter.setPen(QtGui.QPen(QtGui.QColor(255, 0, 0), 1)) 
         painter.drawText(50, 360, f"المتبقي: {self.max_level - self._water_level} L")
 
 class OperatorInterface(QtWidgets.QWidget):
@@ -82,38 +73,37 @@ class OperatorInterface(QtWidgets.QWidget):
         self.operator_name = operator_name
         print(get_operator_id(self.operator_name))
         self.init_ui()
-        self.flowmeter_values = {}  # Ensure this is initialized here
+        self.flowmeter_values = {} 
         self.start_mqtt_thread()        
-        self.status = {}  # Dictionary to store the status of each port
-        self.sent_logs = set()  # Set to track sent logs        
+        self.status = {}  
+        self.sent_logs = set()
 
-        # Connect the signal to the update_flowmeter_signal method
+        
         self.update_flowmeter_signal.connect(self.update_flowmeter_readings)
 
     def init_ui(self):
         self.setWindowTitle(f"نظام تعبئة المياه - المشغل: {self.operator_name}")
-        self.showFullScreen()  # Make the window full screen
+        self.showFullScreen()
 
         layout = QtWidgets.QVBoxLayout()
 
-        # Add a horizontal layout for the logo, clock, and radio buttons
+        
         top_layout = QtWidgets.QHBoxLayout()
 
-        # Add the logo image
+        
         logo_label = QtWidgets.QLabel(self)
-        logo_pixmap = QtGui.QPixmap("src/logo.png")  # Replace with the path to your logo image
-        logo_pixmap = logo_pixmap.scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio)  # Resize the logo
+        logo_pixmap = QtGui.QPixmap("src/logo.png")  
+        logo_pixmap = logo_pixmap.scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
         logo_label.setPixmap(logo_pixmap)
         logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         top_layout.addWidget(logo_label)
 
-        # Add the clock
+        
         self.clock_label = QtWidgets.QLabel(self)
         self.clock_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.clock_label.setStyleSheet("color: #3EB489; font-size: 24px;")  # Set the color to ming green and font size
+        self.clock_label.setStyleSheet("color: #3EB489; font-size: 24px;")
         top_layout.addWidget(self.clock_label)
 
-        # Add the radio buttons
         radio_layout = QtWidgets.QVBoxLayout()
         manual_radio = QtWidgets.QRadioButton("يدوي")
         manual_radio.setChecked(True)
@@ -133,7 +123,7 @@ class OperatorInterface(QtWidgets.QWidget):
         scroll_area.setWidgetResizable(True)
         scroll_content = QtWidgets.QWidget()
         self.port_cards_layout = QtWidgets.QGridLayout(scroll_content)
-        self.port_cards_layout.setSpacing(30)  # Add padding between cards
+        self.port_cards_layout.setSpacing(30) 
         self.load_ports()
         scroll_area.setWidget(scroll_content)
         layout.addWidget(scroll_area)
@@ -144,14 +134,14 @@ class OperatorInterface(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
-        # Start the timer to update the clock
+        
         self.start_clock()
 
     def start_clock(self):
         timer = QtCore.QTimer(self)
         timer.timeout.connect(self.update_clock)
-        timer.start(1000)  # Update the clock every second
-        self.update_clock()  # Initial call to set the current time
+        timer.start(1000) 
+        self.update_clock()
 
     def update_clock(self):
         current_time = QtCore.QTime.currentTime().toString("hh:mm:ss")
@@ -212,7 +202,7 @@ class OperatorInterface(QtWidgets.QWidget):
             card_layout.addLayout(form_layout)
             card.setLayout(card_layout)
 
-            self.port_cards_layout.addWidget(card, idx // 5, idx % 5)  # Arrange cards in a grid
+            self.port_cards_layout.addWidget(card, idx // 5, idx % 5) 
 
     def change_mode(self, mode):
         self.mode = mode
@@ -242,7 +232,7 @@ class OperatorInterface(QtWidgets.QWidget):
                 self.mqtt_client.publish(f"{port_name}/logdata", operator_id + "," + truck_number + "," + receipt_number + "," + quantity + "," + timestamp)
                 self.mqtt_client.publish(f"{port_name}/quantity", quantity)
                 self.mqtt_client.publish(f"{port_name}/state", "start")
-                water_tank.setMaxLevel(float(quantity))  # Set the max level of the tank to the required quantity
+                water_tank.setMaxLevel(float(quantity))  
             else :
                     QtWidgets.QMessageBox.critical(self, "خطأ", "المنفذ قيد التعبئة بالفعل")
         else:
@@ -332,7 +322,7 @@ class OperatorInterface(QtWidgets.QWidget):
 
     def on_connect(self, client, userdata, flags, rc):
         print("Connected with result code " + str(rc))
-        client.subscribe("#")  # Subscribe to all topics
+        client.subscribe("#")  
 
     def on_message(self, client, userdata, msg):
         topic = msg.topic
@@ -381,7 +371,7 @@ class OperatorInterface(QtWidgets.QWidget):
 
 if __name__ == "__main__":
     import sys
-    create_table()  # Ensure tables are created
+    create_table() 
     app = QtWidgets.QApplication(sys.argv)
     operator_interface = OperatorInterface("Operator 1")
     operator_interface.show()
