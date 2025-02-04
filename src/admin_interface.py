@@ -9,7 +9,7 @@ class AdminInterface(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        self.setWindowTitle("واجهة الإدارة")
+        self.setWindowTitle("Admin Interface")
         self.showMaximized()  # Make the window fullscreen
         self.center()
 
@@ -29,7 +29,7 @@ class AdminInterface(QtWidgets.QWidget):
 
         operator_frame.setLayout(operator_layout)
 
-        notebook.addTab(operator_frame, "إدارة المشغلين")
+        notebook.addTab(operator_frame, "Manage Operators")
 
         # Tab for managing ports
         port_frame = QtWidgets.QWidget()
@@ -45,7 +45,7 @@ class AdminInterface(QtWidgets.QWidget):
 
         port_frame.setLayout(port_layout)
 
-        notebook.addTab(port_frame, "إدارة المنافذ")
+        notebook.addTab(port_frame, "Manage Ports")
 
         # Tab for history
         history_frame = QtWidgets.QWidget()
@@ -53,12 +53,12 @@ class AdminInterface(QtWidgets.QWidget):
 
         self.history_table = QtWidgets.QTableWidget()
         self.history_table.setColumnCount(10)
-        self.history_table.setHorizontalHeaderLabels(["اسم المحطة", "رقم المنفذ", "اسم المشغل", "رقم الشاحنة", "رقم الإيصال", "الكمية المطلوبة", "الكمية الفعلية", "قراءة عداد التدفق", "وقت الإدخال", "وقت الخروج"])
+        self.history_table.setHorizontalHeaderLabels(["Station Name", "Port Number", "Operator Name", "Truck Number", "Receipt Number", "Required Quantity", "Actual Quantity", "Flow Meter Reading", "Entry Time", "Logout Time"])
         self.history_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)  # Adjust column widths
         history_layout.addWidget(self.history_table)
 
         history_frame.setLayout(history_layout)
-        notebook.addTab(history_frame, "السجل")
+        notebook.addTab(history_frame, "History")
 
         self.load_history()
 
@@ -76,13 +76,13 @@ class AdminInterface(QtWidgets.QWidget):
 
         channel_frame.setLayout(channel_layout)
 
-        notebook.addTab(channel_frame, "القنوات")
+        notebook.addTab(channel_frame, "Channels")
 
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.addWidget(notebook)
         self.setLayout(main_layout)
 
-        logout_button = QtWidgets.QPushButton("تسجيل الخروج", self)
+        logout_button = QtWidgets.QPushButton("Logout", self)
         logout_button.clicked.connect(self.logout_action)
         main_layout.addWidget(logout_button)
 
@@ -203,15 +203,15 @@ class AdminInterface(QtWidgets.QWidget):
     def add_operator_action(self, dialog, operator_name, operator_id, operator_password):
         if operator_name and operator_password and operator_id:
             result = add_operator(operator_name, operator_password, operator_id)
-            QtWidgets.QMessageBox.information(self, "النتيجة", result)
+            QtWidgets.QMessageBox.information(self, "Result", result)
             self.list_operators_action()
             dialog.accept()
         else:
-            QtWidgets.QMessageBox.warning(self, "خطأ", "جميع الحقول مطلوبة.")
+            QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
 
     def remove_operator_action(self, operator_name):
         result = remove_operator(operator_name)
-        QtWidgets.QMessageBox.information(self, "النتيجة", result)
+        QtWidgets.QMessageBox.information(self, "Result", result)
         self.list_operators_action()
         self.clear_fields()
 
@@ -222,19 +222,17 @@ class AdminInterface(QtWidgets.QWidget):
 
         for idx, operator in enumerate(operators):
             operator_name, operator_id = operator[0], operator[2]
-            card = QtWidgets.QGroupBox()            
+            card = QtWidgets.QGroupBox(operator_name)
+            card.setFixedSize(300, 300)  # Set fixed size for each card
             card_layout = QtWidgets.QVBoxLayout()
 
-            name_label = QtWidgets.QLabel(operator_name)
-            name_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-            id_label = QtWidgets.QLabel(f"الكود: {operator_id}")
-            id_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            id_label = QtWidgets.QLabel(f"ID: {operator_id}")
 
-            edit_button = QtWidgets.QPushButton("تعديل")
+            edit_button = QtWidgets.QPushButton("Edit")
             edit_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileDialogContentsView))
             edit_button.clicked.connect(lambda _, on=operator_name, oid=operator_id: self.edit_operator_action(on, oid))
 
-            remove_button = QtWidgets.QPushButton("إزالة")
+            remove_button = QtWidgets.QPushButton("Remove")
             remove_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_TrashIcon))
             remove_button.clicked.connect(lambda _, on=operator_name: self.remove_operator_action(on))
 
@@ -242,45 +240,43 @@ class AdminInterface(QtWidgets.QWidget):
             button_layout.addWidget(edit_button)
             button_layout.addWidget(remove_button)
 
-            card_layout.addWidget(name_label)
             card_layout.addWidget(id_label)
             card_layout.addLayout(button_layout)
 
             card.setLayout(card_layout)
-            card.setFixedSize(400, 150)  # Set fixed size for each card
-            self.operator_cards_layout.addWidget(card, idx // 3, idx % 3)  # Arrange cards in a grid with 5 cards per row
+            self.operator_cards_layout.addWidget(card, idx // 5, idx % 5)  # Arrange cards in a grid with 5 cards per row
 
         # Add a card for adding a new operator
-        add_card = QtWidgets.QGroupBox("إضافة مشغل جديد")
-        card.setFixedSize(400, 150)  # Set fixed size for each card
+        add_card = QtWidgets.QGroupBox("Add New Operator")
+        add_card.setFixedSize(300, 300)  # Set fixed size for the add card
         add_card_layout = QtWidgets.QVBoxLayout()
-        add_button = QtWidgets.QPushButton("إضافة مشغل")
+        add_button = QtWidgets.QPushButton("Add Operator")
         add_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileDialogNewFolder))
         add_button.clicked.connect(self.show_add_operator_dialog)
         add_card_layout.addWidget(add_button)
         add_card.setLayout(add_card_layout)
-        self.operator_cards_layout.addWidget(add_card, len(operators) // 3, len(operators) % 3)  # Place the add card in the next available slot
+        self.operator_cards_layout.addWidget(add_card, len(operators) // 5, len(operators) % 5)  # Place the add card in the next available slot
 
     def show_add_operator_dialog(self):
         dialog = QtWidgets.QDialog(self)
-        dialog.setWindowTitle("إضافة مشغل جديد")
+        dialog.setWindowTitle("Add New Operator")
 
         layout = QtWidgets.QVBoxLayout(dialog)
 
-        operator_name_label = QtWidgets.QLabel("اسم المشغل:")
+        operator_name_label = QtWidgets.QLabel("Operator Name:")
         operator_name_entry = QtWidgets.QLineEdit()
 
-        operator_id_label = QtWidgets.QLabel("كود المشغل:")
+        operator_id_label = QtWidgets.QLabel("Operator ID:")
         operator_id_entry = QtWidgets.QLineEdit()
 
-        operator_password_label = QtWidgets.QLabel("كلمة مرور المشغل:")
+        operator_password_label = QtWidgets.QLabel("Operator Password:")
         operator_password_entry = QtWidgets.QLineEdit()
         operator_password_entry.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
 
-        save_button = QtWidgets.QPushButton("حفظ")
+        save_button = QtWidgets.QPushButton("Save")
         save_button.clicked.connect(lambda: self.add_operator_action(dialog, operator_name_entry.text(), operator_id_entry.text(), operator_password_entry.text()))
 
-        cancel_button = QtWidgets.QPushButton("إلغاء")
+        cancel_button = QtWidgets.QPushButton("Cancel")
         cancel_button.clicked.connect(dialog.reject)
 
         layout.addWidget(operator_name_label)
@@ -297,24 +293,24 @@ class AdminInterface(QtWidgets.QWidget):
 
     def edit_operator_action(self, operator_name, operator_id):
         dialog = QtWidgets.QDialog(self)
-        dialog.setWindowTitle(f"تعديل المشغل: {operator_name}")
+        dialog.setWindowTitle(f"Edit Operator: {operator_name}")
 
         layout = QtWidgets.QVBoxLayout(dialog)
 
-        operator_name_label = QtWidgets.QLabel("اسم المشغل:")
+        operator_name_label = QtWidgets.QLabel("Operator Name:")
         operator_name_entry = QtWidgets.QLineEdit(operator_name)
 
-        operator_id_label = QtWidgets.QLabel("كود المشغل:")
+        operator_id_label = QtWidgets.QLabel("Operator ID:")
         operator_id_entry = QtWidgets.QLineEdit(operator_id)
 
-        operator_password_label = QtWidgets.QLabel("كلمة مرور المشغل:")
+        operator_password_label = QtWidgets.QLabel("Operator Password:")
         operator_password_entry = QtWidgets.QLineEdit()
         operator_password_entry.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
 
-        save_button = QtWidgets.QPushButton("حفظ")
+        save_button = QtWidgets.QPushButton("Save")
         save_button.clicked.connect(lambda: self.update_operator_action(dialog, operator_name, operator_id, operator_name_entry.text(), operator_id_entry.text(), operator_password_entry.text()))
 
-        cancel_button = QtWidgets.QPushButton("إلغاء")
+        cancel_button = QtWidgets.QPushButton("Cancel")
         cancel_button.clicked.connect(dialog.reject)
 
         layout.addWidget(operator_name_label)
@@ -332,11 +328,11 @@ class AdminInterface(QtWidgets.QWidget):
     def update_operator_action(self, dialog, old_name, old_id, new_name, new_id, new_password):
         if new_name and new_id and new_password:
             result = update_operator(old_name, old_id, new_name, new_id, new_password)
-            QtWidgets.QMessageBox.information(self, "النتيجة", result)
+            QtWidgets.QMessageBox.information(self, "Result", result)
             self.list_operators_action()
             dialog.accept()
         else:
-            QtWidgets.QMessageBox.warning(self, "خطأ", "جميع الحقول مطلوبة.")
+            QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
 
     def add_port_action(self, dialog, port_name, mode, config):
         if mode == "modbus":
@@ -344,37 +340,37 @@ class AdminInterface(QtWidgets.QWidget):
             if port_name and baudrate and frame and endian and slave_address and register_address and first_close_time and second_close_time and first_close_lag and second_close_lag:
                 if is_port_name_unique(port_name):
                     result = add_port(port_name, mode, config)
-                    QtWidgets.QMessageBox.information(self, "النتيجة", result)
+                    QtWidgets.QMessageBox.information(self, "Result", result)
                     self.list_ports_action()
                     dialog.accept()
                 else:
-                    QtWidgets.QMessageBox.warning(self, "خطأ", f"المنفذ '{port_name}' موجود بالفعل.")
+                    QtWidgets.QMessageBox.warning(self, "Error", f"Port '{port_name}' already exists.")
             else:
-                QtWidgets.QMessageBox.warning(self, "خطأ", "جميع الحقول مطلوبة.")
+                QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
         elif mode == "milli ampere":
             min_value, max_value, resistor_value, first_close_time, second_close_time, first_close_lag, second_close_lag = config.split(',')
             if port_name and min_value and max_value and resistor_value and first_close_time and second_close_time and first_close_lag and second_close_lag:
                 if is_port_name_unique(port_name):
                     result = add_port(port_name, mode, config)
-                    QtWidgets.QMessageBox.information(self, "النتيجة", result)
+                    QtWidgets.QMessageBox.information(self, "Result", result)
                     self.list_ports_action()
                     dialog.accept()
                 else:
-                    QtWidgets.QMessageBox.warning(self, "خطأ", f"المنفذ '{port_name}' موجود بالفعل.")
+                    QtWidgets.QMessageBox.warning(self, "Error", f"Port '{port_name}' already exists.")
             else:
-                QtWidgets.QMessageBox.warning(self, "خطأ", "جميع الحقول مطلوبة.")
+                QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
         elif mode == "pulse":
             liter_per_pulse, first_close_time, second_close_time, first_close_lag, second_close_lag = config.split(',')
             if port_name and liter_per_pulse and first_close_time and second_close_time and first_close_lag and second_close_lag:
                 if is_port_name_unique(port_name):
                     result = add_port(port_name, mode, config)
-                    QtWidgets.QMessageBox.information(self, "النتيجة", result)
+                    QtWidgets.QMessageBox.information(self, "Result", result)
                     self.list_ports_action()
                     dialog.accept()
                 else:
-                    QtWidgets.QMessageBox.warning(self, "خطأ", f"المنفذ '{port_name}' موجود بالفعل.")
+                    QtWidgets.QMessageBox.warning(self, "Error", f"Port '{port_name}' already exists.")
             else:
-                QtWidgets.QMessageBox.warning(self, "خطأ", "جميع الحقول مطلوبة.")
+                QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
 
     def update_port_action(self):
         selected_row = self.ports_table.currentRow()
@@ -393,11 +389,11 @@ class AdminInterface(QtWidgets.QWidget):
                 second_close_lag = self.second_close_lag_entry.text()
                 if port_name and baudrate and frame and endian and slave_address and register_address and first_close_time and second_close_time and first_close_lag and second_close_lag:
                     result = update_port(port_name, mode, config=f"{baudrate},{frame},{endian},{slave_address},{register_address},{first_close_time},{second_close_time},{first_close_lag},{second_close_lag}")
-                    QtWidgets.QMessageBox.information(self, "النتيجة", result)
+                    QtWidgets.QMessageBox.information(self, "Result", result)
                     self.list_ports_action()
                     self.clear_fields()
                 else:
-                    QtWidgets.QMessageBox.warning(self, "خطأ", "جميع الحقول مطلوبة.")
+                    QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
             elif mode == "milli ampere":
                 min_value = self.min_entry.text()
                 max_value = self.max_entry.text()
@@ -408,11 +404,11 @@ class AdminInterface(QtWidgets.QWidget):
                 second_close_lag = self.second_close_lag_entry.text()
                 if port_name and min_value and max_value and resistor_value and first_close_time and second_close_time and first_close_lag and second_close_lag:
                     result = update_port(port_name, mode, config=f"{min_value},{max_value},{resistor_value},{first_close_time},{second_close_time},{first_close_lag},{second_close_lag}")
-                    QtWidgets.QMessageBox.information(self, "النتيجة", result)
+                    QtWidgets.QMessageBox.information(self, "Result", result)
                     self.list_ports_action()
                     self.clear_fields()
                 else:
-                    QtWidgets.QMessageBox.warning(self, "خطأ", "جميع الحقول مطلوبة.")
+                    QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
             elif mode == "pulse":
                 liter_per_pulse = self.liter_per_pulse_entry.text()
                 first_close_time = self.first_close_time_entry.text()
@@ -421,11 +417,11 @@ class AdminInterface(QtWidgets.QWidget):
                 second_close_lag = self.second_close_lag_entry.text()
                 if port_name and liter_per_pulse and first_close_time and second_close_time and first_close_lag and second_close_lag:
                     result = update_port(port_name, mode, config=f"{liter_per_pulse},{first_close_time},{second_close_time},{first_close_lag},{second_close_lag}")
-                    QtWidgets.QMessageBox.information(self, "النتيجة", result)
+                    QtWidgets.QMessageBox.information(self, "Result", result)
                     self.list_ports_action()
                     self.clear_fields()
                 else:
-                    QtWidgets.QMessageBox.warning(self, "خطأ", "جميع الحقول مطلوبة.")
+                    QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
 
     def list_ports_action(self):
         ports = get_ports()
@@ -450,6 +446,10 @@ class AdminInterface(QtWidgets.QWidget):
                 labels = []
 
             for row, (label, value) in enumerate(zip(labels, config_labels)):
+                if "firstCloseTime" in label or "secondCloseTime" in label:
+                    value += " milli seconds"
+                elif "firstCloseLagV" in label or "secondCloseLagV" in label:
+                    value += " liters"
                 table_layout.addWidget(QtWidgets.QLabel(label), row, 0)
                 table_layout.addWidget(QtWidgets.QLabel(value), row, 1)
 
@@ -484,24 +484,24 @@ class AdminInterface(QtWidgets.QWidget):
 
     def show_add_port_dialog(self):
         dialog = QtWidgets.QDialog(self)
-        dialog.setWindowTitle("إضافة منفذ جديد")
+        dialog.setWindowTitle("Add New Port")
 
         layout = QtWidgets.QVBoxLayout(dialog)
 
-        port_name_label = QtWidgets.QLabel("اسم المنفذ:")
+        port_name_label = QtWidgets.QLabel("Port Name:")
         port_name_entry = QtWidgets.QLineEdit()
 
-        mode_label = QtWidgets.QLabel("mode:")
+        mode_label = QtWidgets.QLabel("Mode:")
         mode_entry = QtWidgets.QComboBox()
         mode_entry.addItems(["modbus", "milli ampere", "pulse"])
         mode_entry.currentIndexChanged.connect(lambda: self.update_dialog_settings(dialog, mode_entry.currentText(), ""))
 
         self.dialog_dynamic_settings_layout = QtWidgets.QVBoxLayout()
 
-        save_button = QtWidgets.QPushButton("حفظ")
+        save_button = QtWidgets.QPushButton("Save")
         save_button.clicked.connect(lambda: self.add_port_action(dialog, port_name_entry.text(), mode_entry.currentText(), self.get_dialog_config()))
 
-        cancel_button = QtWidgets.QPushButton("إلغاء")
+        cancel_button = QtWidgets.QPushButton("Cancel")
         cancel_button.clicked.connect(dialog.reject)
 
         layout.addWidget(port_name_label)
@@ -518,15 +518,15 @@ class AdminInterface(QtWidgets.QWidget):
 
     def edit_port_action(self, port_name, mode, config):
         dialog = QtWidgets.QDialog(self)
-        dialog.setWindowTitle(f"تعديل المنفذ: {port_name}")
+        dialog.setWindowTitle(f"Edit Port: {port_name}")
 
         layout = QtWidgets.QVBoxLayout(dialog)
 
-        port_name_label = QtWidgets.QLabel("اسم المنفذ:")
+        port_name_label = QtWidgets.QLabel("Port Name:")
         port_name_entry = QtWidgets.QLineEdit(port_name)
         port_name_entry.setReadOnly(True)
 
-        mode_label = QtWidgets.QLabel("mode:")
+        mode_label = QtWidgets.QLabel("Mode:")
         mode_entry = QtWidgets.QComboBox()
         mode_entry.addItems(["modbus", "milli ampere", "pulse"])
         mode_entry.setCurrentText(mode)
@@ -534,10 +534,10 @@ class AdminInterface(QtWidgets.QWidget):
 
         self.dialog_dynamic_settings_layout = QtWidgets.QVBoxLayout()
 
-        save_button = QtWidgets.QPushButton("حفظ")
+        save_button = QtWidgets.QPushButton("Save")
         save_button.clicked.connect(lambda: self.save_port_changes(dialog, port_name, mode_entry.currentText(), self.get_dialog_config()))
 
-        cancel_button = QtWidgets.QPushButton("إلغاء")
+        cancel_button = QtWidgets.QPushButton("Cancel")
         cancel_button.clicked.connect(dialog.reject)
 
         layout.addWidget(port_name_label)
@@ -572,63 +572,57 @@ class AdminInterface(QtWidgets.QWidget):
             endian_list.setCurrentText(config_values[2] if config_values else "")
 
             slave_address_entry = QtWidgets.QLineEdit(config_values[3] if len(config_values) > 3 else "")
-            slave_address_entry.setPlaceholderText("slave id")
+            slave_address_entry.setPlaceholderText("Slave Address")
 
             register_address_entry = QtWidgets.QLineEdit(config_values[4] if len(config_values) > 4 else "")
-            register_address_entry.setPlaceholderText("register address")
+            register_address_entry.setPlaceholderText("Register Address")
 
             first_close_time_entry = QtWidgets.QLineEdit(config_values[5] if len(config_values) > 5 else "")
-            first_close_time_entry.setPlaceholderText("firstCloseTime")
+            first_close_time_entry.setPlaceholderText("First Close Time")
 
             second_close_time_entry = QtWidgets.QLineEdit(config_values[6] if len(config_values) > 6 else "")
-            second_close_time_entry.setPlaceholderText("secondCloseTime")
+            second_close_time_entry.setPlaceholderText("Second Close Time")
 
             first_close_lag_entry = QtWidgets.QLineEdit(config_values[7] if len(config_values) > 7 else "")
-            first_close_lag_entry.setPlaceholderText("firstCloseLagV")
+            first_close_lag_entry.setPlaceholderText("First Close Lag")
 
             second_close_lag_entry = QtWidgets.QLineEdit(config_values[8] if len(config_values) > 8 else "")
-            second_close_lag_entry.setPlaceholderText("secondCloseLagV")
+            second_close_lag_entry.setPlaceholderText("Second Close Lag")
 
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("baud rate:"))
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("Baudrate:"))
             self.dialog_dynamic_settings_layout.addWidget(baudrate_list)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("frame:"))
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("Frame:"))
             self.dialog_dynamic_settings_layout.addWidget(frame_list)
             self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("Endian:"))
             self.dialog_dynamic_settings_layout.addWidget(endian_list)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("slave id:"))
             self.dialog_dynamic_settings_layout.addWidget(slave_address_entry)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("register address:"))
             self.dialog_dynamic_settings_layout.addWidget(register_address_entry)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("firstCloseTime:"))
             self.dialog_dynamic_settings_layout.addWidget(first_close_time_entry)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("secondCloseTime:"))
             self.dialog_dynamic_settings_layout.addWidget(second_close_time_entry)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("firstCloseLagV:"))
             self.dialog_dynamic_settings_layout.addWidget(first_close_lag_entry)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("secondCloseLagV:"))
             self.dialog_dynamic_settings_layout.addWidget(second_close_lag_entry)
 
         elif mode == "milli ampere":
             min_entry = QtWidgets.QLineEdit(config_values[0] if len(config_values) > 0 else "")
-            min_entry.setPlaceholderText("min value")
+            min_entry.setPlaceholderText("Min Value")
 
             max_entry = QtWidgets.QLineEdit(config_values[1] if len(config_values) > 1 else "")
-            max_entry.setPlaceholderText("max value")
+            max_entry.setPlaceholderText("Max Value")
 
             resistor_value_entry = QtWidgets.QLineEdit(config_values[2] if len(config_values) > 2 else "")
-            resistor_value_entry.setPlaceholderText("resistor value")
+            resistor_value_entry.setPlaceholderText("Resistor Value")
 
             first_close_time_entry = QtWidgets.QLineEdit(config_values[3] if len(config_values) > 3 else "")
-            first_close_time_entry.setPlaceholderText("firstCloseTime")
+            first_close_time_entry.setPlaceholderText("First Close Time")
 
             second_close_time_entry = QtWidgets.QLineEdit(config_values[4] if len(config_values) > 4 else "")
-            second_close_time_entry.setPlaceholderText("secondCloseTime")
+            second_close_time_entry.setPlaceholderText("Second Close Time")
 
             first_close_lag_entry = QtWidgets.QLineEdit(config_values[5] if len(config_values) > 5 else "")
-            first_close_lag_entry.setPlaceholderText("firstCloseLagV")
+            first_close_lag_entry.setPlaceholderText("First Close Lag")
 
             second_close_lag_entry = QtWidgets.QLineEdit(config_values[6] if len(config_values) > 6 else "")
-            second_close_lag_entry.setPlaceholderText("secondCloseLagV")
+            second_close_lag_entry.setPlaceholderText("Second Close Lag")
 
             self.dialog_dynamic_settings_layout.addWidget(min_entry)
             self.dialog_dynamic_settings_layout.addWidget(max_entry)
@@ -640,19 +634,19 @@ class AdminInterface(QtWidgets.QWidget):
 
         elif mode == "pulse":
             liter_per_pulse_entry = QtWidgets.QLineEdit(config_values[0] if len(config_values) > 0 else "")
-            liter_per_pulse_entry.setPlaceholderText("pulse per letter")
+            liter_per_pulse_entry.setPlaceholderText("Liter per Pulse")
 
             first_close_time_entry = QtWidgets.QLineEdit(config_values[1] if len(config_values) > 1 else "")
-            first_close_time_entry.setPlaceholderText("firstCloseTime")
+            first_close_time_entry.setPlaceholderText("First Close Time")
 
             second_close_time_entry = QtWidgets.QLineEdit(config_values[2] if len(config_values) > 2 else "")
-            second_close_time_entry.setPlaceholderText("secondCloseTime")
+            second_close_time_entry.setPlaceholderText("Second Close Time")
 
             first_close_lag_entry = QtWidgets.QLineEdit(config_values[3] if len(config_values) > 3 else "")
-            first_close_lag_entry.setPlaceholderText("firstCloseLagV")
+            first_close_lag_entry.setPlaceholderText("First Close Lag")
 
             second_close_lag_entry = QtWidgets.QLineEdit(config_values[4] if len(config_values) > 4 else "")
-            second_close_lag_entry.setPlaceholderText("secondCloseLagV")
+            second_close_lag_entry.setPlaceholderText("Second Close Lag")
 
             self.dialog_dynamic_settings_layout.addWidget(liter_per_pulse_entry)
             self.dialog_dynamic_settings_layout.addWidget(first_close_time_entry)
@@ -672,13 +666,13 @@ class AdminInterface(QtWidgets.QWidget):
 
     def save_port_changes(self, dialog, port_name, mode, config):
         result = update_port(port_name, mode, config)
-        QtWidgets.QMessageBox.information(self, "النتيجة", result)
+        QtWidgets.QMessageBox.information(self, "Result", result)
         self.list_ports_action()
         dialog.accept()
 
     def remove_port_action(self, port_name):
         result = remove_port(port_name)
-        QtWidgets.QMessageBox.information(self, "النتيجة", result)
+        QtWidgets.QMessageBox.information(self, "Result", result)
         self.list_ports_action()
         self.clear_fields()
 
@@ -718,13 +712,13 @@ class AdminInterface(QtWidgets.QWidget):
             new_password = self.add_operator_password_entry.text()
             if new_name and new_id and new_password:
                 result = update_operator(operator_name, operator_id, new_name, new_id, new_password)
-                QtWidgets.QMessageBox.information(self, "النتيجة", result)
+                QtWidgets.QMessageBox.information(self, "Result", result)
                 self.list_operators_action()
                 self.clear_fields()
             else:
-                QtWidgets.QMessageBox.warning(self, "خطأ", "جميع الحقول مطلوبة.")
+                QtWidgets.QMessageBox.warning(self, "Error", "All fields are required.")
         else:
-            QtWidgets.QMessageBox.warning(self, "خطأ", "لم يتم تحديد مشغل.")
+            QtWidgets.QMessageBox.warning(self, "Error", "No operator selected.")
 
     def list_channels_action(self):
         ports = get_ports()
@@ -737,24 +731,32 @@ class AdminInterface(QtWidgets.QWidget):
             card = QtWidgets.QGroupBox(port_name)
             card.setFixedSize(300, 300)  # Set fixed size for each card
             card_layout = QtWidgets.QVBoxLayout()
-
-            table_layout = QtWidgets.QGridLayout()
+            
             lis = get_channel_entry(port_name)
             if lis:
-                labels = ["رقم الشاحنة:", "كود المشغل:", "رقم الإيصال:", "الكمية المطلوبة:", "الكمية الفعلية:", "عداد التدفق:"]
-                values = [lis[0], lis[1], lis[2], lis[3], lis[4], lis[5]]
+                truck_number_label = QtWidgets.QLabel(f"Truck Number: {lis[0]}")
+                operator_id_label = QtWidgets.QLabel(f"Operator Id: {lis[1]}")
+                receipt_number_label = QtWidgets.QLabel(f"Receipt Number: {lis[2]}")
+                required_quantity_label = QtWidgets.QLabel(f"Required Quantity: {lis[3]}")
+                actual_quantity_label = QtWidgets.QLabel(f"Actual Quantity: {lis[4]}")
+                flowmeter_label = QtWidgets.QLabel(f"Flowmeter: {lis[5]}")
             else:
-                labels = ["رقم الشاحنة:", "كود المشغل:", "رقم الإيصال:", "الكمية المطلوبة:", "الكمية الفعلية:", "عداد التدفق:"]
-                values = ["غير متوفر"] * 6
+                truck_number_label = QtWidgets.QLabel("Truck Number: N/A")
+                operator_id_label = QtWidgets.QLabel("Operator Id: N/A")
+                receipt_number_label = QtWidgets.QLabel("Receipt Number: N/A")
+                required_quantity_label = QtWidgets.QLabel("Required Quantity: N/A")
+                actual_quantity_label = QtWidgets.QLabel("Actual Quantity: N/A")
+                flowmeter_label = QtWidgets.QLabel("Flowmeter: N/A")
 
-            for row, (label, value) in enumerate(zip(labels, values)):
-                table_layout.addWidget(QtWidgets.QLabel(label), row, 0)
-                table_layout.addWidget(QtWidgets.QLabel(value), row, 1)
-
-            edit_button = QtWidgets.QPushButton("تعديل")
+            edit_button = QtWidgets.QPushButton("Edit")
             edit_button.clicked.connect(lambda _, pn=port_name: self.show_edit_channel_dialog(pn))
 
-            card_layout.addLayout(table_layout)
+            card_layout.addWidget(truck_number_label)
+            card_layout.addWidget(operator_id_label)
+            card_layout.addWidget(receipt_number_label)
+            card_layout.addWidget(required_quantity_label)
+            card_layout.addWidget(actual_quantity_label)
+            card_layout.addWidget(flowmeter_label)
             card_layout.addWidget(edit_button)
 
             card.setLayout(card_layout)
@@ -762,34 +764,34 @@ class AdminInterface(QtWidgets.QWidget):
 
     def show_edit_channel_dialog(self, port_name):
         dialog = QtWidgets.QDialog(self)
-        dialog.setWindowTitle(f"تعديل القناة: {port_name}")
+        dialog.setWindowTitle(f"Edit Channel: {port_name}")
 
         layout = QtWidgets.QVBoxLayout(dialog)
 
         channel_entry = get_channel_entry(port_name)
 
-        truck_number_label = QtWidgets.QLabel("رقم الشاحنة:")
+        truck_number_label = QtWidgets.QLabel("Truck Number:")
         truck_number_entry = QtWidgets.QLineEdit(channel_entry[0] if channel_entry else "")
 
-        operator_id_label = QtWidgets.QLabel("كود المشغل:")
+        operator_id_label = QtWidgets.QLabel("Operator ID:")
         operator_id_entry = QtWidgets.QLineEdit(channel_entry[1] if channel_entry else "")
 
-        receipt_number_label = QtWidgets.QLabel("رقم الإيصال:")
+        receipt_number_label = QtWidgets.QLabel("Receipt Number:")
         receipt_number_entry = QtWidgets.QLineEdit(channel_entry[2] if channel_entry else "")
 
-        required_quantity_label = QtWidgets.QLabel("الكمية المطلوبة:")
+        required_quantity_label = QtWidgets.QLabel("Required Quantity:")
         required_quantity_entry = QtWidgets.QLineEdit(channel_entry[3] if channel_entry else "")
 
-        actual_quantity_label = QtWidgets.QLabel("الكمية الفعلية:")
+        actual_quantity_label = QtWidgets.QLabel("Actual Quantity:")
         actual_quantity_entry = QtWidgets.QLineEdit(channel_entry[4] if channel_entry else "")
 
-        flowmeter_label = QtWidgets.QLabel("عداد التدفق:")
+        flowmeter_label = QtWidgets.QLabel("Flowmeter:")
         flowmeter_entry = QtWidgets.QLineEdit(channel_entry[5] if channel_entry else "")
 
-        save_button = QtWidgets.QPushButton("حفظ")
+        save_button = QtWidgets.QPushButton("Save")
         save_button.clicked.connect(lambda: self.save_channel_changes(dialog, port_name, truck_number_entry.text(), operator_id_entry.text(), receipt_number_entry.text(), required_quantity_entry.text(), actual_quantity_entry.text(), flowmeter_entry.text()))
 
-        cancel_button = QtWidgets.QPushButton("إلغاء")
+        cancel_button = QtWidgets.QPushButton("Cancel")
         cancel_button.clicked.connect(dialog.reject)
 
         layout.addWidget(truck_number_label)
@@ -812,7 +814,7 @@ class AdminInterface(QtWidgets.QWidget):
 
     def save_channel_changes(self, dialog, port_name,  truck_number, operator_id, receipt_number, required_quantity, actual_quantity, flowmeter):
         update_channel_entry(port_name, flowmeter, operator_id, truck_number, receipt_number, required_quantity, actual_quantity)
-        QtWidgets.QMessageBox.information(self, "النتيجة", "تم تحديث إدخال القناة بنجاح.")
+        QtWidgets.QMessageBox.information(self, "Result", "Channel entry updated successfully.")
         self.list_channels_action()
         dialog.accept()
 
