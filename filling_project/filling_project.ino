@@ -323,7 +323,7 @@ void setup() {
   // end of under test
 
   if (config[0] == "modbus") {
-    int frame;
+    SerialConfig frame;
     if (config[2] == "SERIAL_8N1")
       frame = SERIAL_8N1;
     else if (config[2] == "SERIAL_8N2")
