@@ -55,3 +55,5 @@ bool force_stop;
 WiFiClient espClient;
 PubSubClient client(espClient);
 ModbusMaster node;
+
+String config[10];
