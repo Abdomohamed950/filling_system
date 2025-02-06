@@ -77,10 +77,7 @@ class OperatorInterface(QtWidgets.QWidget):
         self.sent_logs = set()
         self.init_ui()
         self.update_flowmeter_signal.connect(self.update_flowmeter_readings)
-        self.start_mqtt_thread()        
-
-        
-        self.update_flowmeter_signal.connect(self.update_flowmeter_readings)
+        self.start_mqtt_thread()                
 
     def init_ui(self):
         self.setWindowTitle(f"نظام تعبئة المياه - المشغل: {self.operator_name}")
