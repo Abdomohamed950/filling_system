@@ -70,13 +70,14 @@ class OperatorInterface(QtWidgets.QWidget):
 
     def __init__(self, operator_name):
         super().__init__()
-        self.operator_name = operator_name
-        print(get_operator_id(self.operator_name))
-        self.init_ui()
+        self.operator_name = operator_name    
         self.flowmeter_values = {} 
-        self.start_mqtt_thread()        
+        self.actual_quantities = {}  # Dictionary to store actual quantities for each port
         self.status = {}  
         self.sent_logs = set()
+        self.init_ui()
+        self.update_flowmeter_signal.connect(self.update_flowmeter_readings)
+        self.start_mqtt_thread()        
 
         
         self.update_flowmeter_signal.connect(self.update_flowmeter_readings)
@@ -148,6 +149,8 @@ class OperatorInterface(QtWidgets.QWidget):
         self.clock_label.setText(current_time)
 
     def logout_action(self):
+        self.mqtt_client.disconnect()
+        self.mqtt_thread.join(timeout=2)
         self.close()
         self.login_window = LoginWindow()
         self.login_window.show()
@@ -241,24 +244,9 @@ class OperatorInterface(QtWidgets.QWidget):
     def stop_filling(self, port_name):
         chanel_truck_number, chanel_operator_id, chanel_receipt_number, chanel_required_quantity, chanel_actual_quantity, chanel_flowmeter= get_channel_entry(port_name)
         self.mqtt_client.publish(f"{port_name}/state", "stop")
-        actual_quantity = self.get_actual_quantity(port_name)
-        flow_meter_value = get_flowmeter_value(port_name)
-        logout_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-        update_log_on_stop(port_name, actual_quantity, flow_meter_value, logout_time)
-        server_log(int(chanel_actual_quantity), float(actual_quantity))
-        server_log(int(chanel_flowmeter), float(flow_meter_value))
 
     def get_actual_quantity(self, port_name):
-        card = self.get_card_by_port_name(port_name)
-        if card:
-            actual_quantity_label = card.findChild(QtWidgets.QLabel, "Actual Quantity")
-            if actual_quantity_label:
-                actual_quantity_text = actual_quantity_label.text().replace("Actual Quantity: ", "")
-                try:
-                    return float(actual_quantity_text)
-                except ValueError:
-                    return 0
-        return 0
+        return self.actual_quantities.get(port_name, 0)
 
     def start_mqtt_thread(self):
         self.mqtt_client = mqtt.Client()
@@ -289,7 +277,7 @@ class OperatorInterface(QtWidgets.QWidget):
             card = self.port_cards_layout.itemAt(i).widget()
             if card.title() == port_name:
                 actual_quantity_label = card.findChild(QtWidgets.QLabel, "Actual Quantity")
-                actual_quantity_label.setText(f"الكميه الفعليه: {actual_quantity}")
+                actual_quantity_label.setText(f"الكمية الفعلية: {actual_quantity}")
                 break
 
     def disable_card_fields(self, port_name):
@@ -364,15 +352,20 @@ class OperatorInterface(QtWidgets.QWidget):
         if port_name in self.flowmeter_values:
             initial_value = self.flowmeter_values[port_name]
             if initial_value is not None and initial_value != "":
-                actual_quantity = float(flow_meter_value) - float(initial_value)
-                self.update_actual_quantity_label(port_name, actual_quantity)
-                self.update_progress_bar(port_name, actual_quantity)
-
+                try:
+                    actual_quantity = float(flow_meter_value) - float(initial_value)
+                    if actual_quantity < 0:
+                        actual_quantity = 0
+                    self.update_actual_quantity_label(port_name, actual_quantity)
+                    self.actual_quantities[port_name] = actual_quantity  # Update the actual quantity in the dictionary
+                    self.update_progress_bar(port_name, actual_quantity)
+                except ValueError:
+                    print(f"Error parsing flow meter value for port {port_name}: {flow_meter_value}")
 
 if __name__ == "__main__":
     import sys
     create_table() 
     app = QtWidgets.QApplication(sys.argv)
-    operator_interface = OperatorInterface("Operator 1")
+    operator_interface = OperatorInterface("abdo")
     operator_interface.show()
     sys.exit(app.exec())
