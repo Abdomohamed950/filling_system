@@ -1,11 +1,13 @@
 #!/bin/bash
 
-if [ ! -d "venv" ]; then
+VENV_DIR="$HOME/venv_filling_system"
+
+if [ ! -d "$VENV_DIR" ]; then
     echo "Virtual environment not found. Creating one..."
-    python3 -m venv venv
+    python3 -m venv "$VENV_DIR"
 fi
 
-source venv/bin/activate
+source "$VENV_DIR/bin/activate"
 
 pip install -r requirements.txt
 

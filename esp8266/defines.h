@@ -19,8 +19,8 @@ const char* truck_id = "port1";
 #define SERIAL_MODBUS_BAUD_RATE 9600
 #define RXD2 16
 #define TXD2 17
-#define RELAY_OPEN 25
-#define RELAY_CLOSE 26
+#define RELAY_OPEN D2
+#define RELAY_CLOSE D3
 
 typedef union {
   uint32_t intVal;
