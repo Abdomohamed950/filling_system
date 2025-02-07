@@ -116,7 +116,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     } else if (message == "stop") {
       if (is_running) {
         if (force_stop)
-          RelayCloseDC(TIME_OPEN_DC);
+          RelayCloseDC(TIME_OPEN_DC+1000);
         is_running = false;
         logdata += "," + String(flow_meter_value - flow_meter_prev_value);
       }
@@ -218,7 +218,7 @@ void loop() {
     if (is_running && result == node.ku8MBSuccess) {
       float FlowRate = flow_rate_reader();
       remain_Quantity = (flow_meter_prev_value + required_Quantity - flow_meter_value);
-      double ExtraWater = (FlowRate / 2.0) * thirdCloseTime;
+      double ExtraWater = (FlowRate / 2.0) * thirdCloseTime/1000;
       if (remain_Quantity <= float(firstCloseLagV) / 1000 && firstCloseStatus == 0) {
         RelayCloseDC(firstCloseTime);
         firstCloseStatus = 1;
@@ -226,7 +226,7 @@ void loop() {
         RelayCloseDC(secondCloseTime);
         secondCloseStatus = 1;
       } else if (remain_Quantity - ExtraWater / 1000 <= 0 && thirdCloseStatus == 0) {
-        RelayCloseDC(thirdCloseTime);
+        RelayCloseDC(thirdCloseTime+1000);
         thirdCloseStatus = 1;
         force_stop = 0;
         client.publish((String(truck_id) + "/state").c_str(), "stop");
