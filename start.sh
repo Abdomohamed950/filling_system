@@ -8,6 +8,9 @@ VENV_DIR="$HOME/venv_filling_system"
 if [ ! -d "$VENV_DIR" ]; then
     echo "Virtual environment not found. Creating one..."
     python3 -m venv "$VENV_DIR"
+else
+    echo "Virtual environment found."
+    echo $VENV_DIR
 fi
 
 if [ -d "$VENV_DIR" ]; then
