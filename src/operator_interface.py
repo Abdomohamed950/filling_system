@@ -214,29 +214,36 @@ class OperatorInterface(QtWidgets.QWidget):
             self.barcode_entry.setEnabled(True)
             self.barcode_entry.setFocus()
 
-    def start_filling(self, port_name, add_quantity_entry ,receipt_number_entry, truck_number_entry, water_tank):
-        if(add_quantity_entry.text() and truck_number_entry.text() ):        
-            if( not self.is_disabled(port_name)):            
-                chanel_truck_number, chanel_operator_id, chanel_receipt_number, chanel_required_quantity, chanel_actual_quantity, chanel_flowmeter= get_channel_entry(port_name)
-                truck_number = truck_number_entry.text()
-                server_log(int(chanel_truck_number),int(truck_number))
-                operator_id = get_operator_id(self.operator_name)
-                server_log(int(chanel_operator_id), operator_id)
-                receipt_number = receipt_number_entry.text()
-                server_log(int(chanel_receipt_number),int(receipt_number))
-                quantity = add_quantity_entry.text()
-                server_log(int(chanel_required_quantity),quantity)
-                self.flowmeter_values[port_name] = get_flowmeter_value(port_name)
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-                log_action("station_name", port_name, self.operator_name, truck_number, receipt_number, quantity, None, None, timestamp, None)                
-                self.mqtt_client.publish(f"{port_name}/logdata", operator_id + "," + truck_number + "," + receipt_number + "," + quantity + "," + timestamp)
-                self.mqtt_client.publish(f"{port_name}/quantity", quantity)
-                self.mqtt_client.publish(f"{port_name}/state", "start")
-                water_tank.setMaxLevel(float(quantity))  
-            else :
-                    QtWidgets.QMessageBox.critical(self, "خطأ", "المنفذ قيد التعبئة بالفعل")
+    def start_filling(self, port_name, add_quantity_entry, receipt_number_entry, truck_number_entry, water_tank):
+        channel_entry = get_channel_entry(port_name)
+        if channel_entry is not None:
+            chanel_truck_number, chanel_operator_id, chanel_receipt_number, chanel_required_quantity, chanel_actual_quantity, chanel_flowmeter = channel_entry
+            if(add_quantity_entry.text() and truck_number_entry.text() ):        
+                if( not self.is_disabled(port_name)):            
+                    truck_number = truck_number_entry.text()
+                    operator_id = get_operator_id(self.operator_name)
+                    receipt_number = receipt_number_entry.text()
+                    quantity = add_quantity_entry.text()
+                    self.flowmeter_values[port_name] = get_flowmeter_value(port_name)
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                    log_action("station_name", port_name, self.operator_name, truck_number, receipt_number, quantity, None, None, timestamp, None)                
+                    self.mqtt_client.publish(f"{port_name}/logdata", operator_id + "," + truck_number + "," + receipt_number + "," + quantity + "," + timestamp)
+                    self.mqtt_client.publish(f"{port_name}/quantity", quantity)
+                    self.mqtt_client.publish(f"{port_name}/state", "start")
+                    water_tank.setMaxLevel(float(quantity))  
+                    try:
+                        server_log(int(chanel_truck_number), int(truck_number))
+                        server_log(int(chanel_operator_id), operator_id)
+                        server_log(int(chanel_receipt_number), int(receipt_number))
+                        server_log(int(chanel_required_quantity), quantity)
+                    except ValueError as e:
+                        print(f"Error logging server data: {e}")
+                else :
+                        QtWidgets.QMessageBox.critical(self, "خطأ", "المنفذ قيد التعبئة بالفعل")
+            else:
+                QtWidgets.QMessageBox.critical(self, "خطأ", "يرجى ملء جميع الحقول")
         else:
-            QtWidgets.QMessageBox.critical(self, "خطأ", "يرجى ملء جميع الحقول")
+            print(f"Error: get_channel_entry returned None for port_name {port_name}")
 
     def stop_filling(self, port_name):
         chanel_truck_number, chanel_operator_id, chanel_receipt_number, chanel_required_quantity, chanel_actual_quantity, chanel_flowmeter= get_channel_entry(port_name)
@@ -326,11 +333,14 @@ class OperatorInterface(QtWidgets.QWidget):
             elif state == "stop":
                 chanel_truck_number, chanel_operator_id, chanel_receipt_number, chanel_required_quantity, chanel_actual_quantity, chanel_flowmeter= get_channel_entry(port_name)
                 actual_quantity = self.get_actual_quantity(port_name)
-                server_log(chanel_actual_quantity, float(actual_quantity))
                 flow_meter_value = get_flowmeter_value(port_name)
                 logout_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                 update_log_on_stop(port_name, actual_quantity, flow_meter_value, logout_time)
                 self.enable_card_fields(port_name)        
+                try:
+                    server_log(chanel_actual_quantity, float(actual_quantity))
+                except ValueError as e:
+                    print(f"Error logging actual quantity: {e}")
         elif "/update" in topic:
             port_name = topic.split('/')[0]
             config = ','.join(get_config(port_name))

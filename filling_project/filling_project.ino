@@ -136,8 +136,8 @@ float flow_rate_reader() {
 
 // ------------------------------------valve functions-------------------------------
 void RelayOpenDC(void) {
-  digitalWrite(RELAY_CLOSE, LOW);
-  digitalWrite(RELAY_OPEN, HIGH);
+  digitalWrite(RELAY_CLOSE, HIGH);
+  digitalWrite(RELAY_OPEN, LOW);
   long td = millis();
   while ((millis() - td < TIME_OPEN_DC)) {
     static unsigned long last = 0;
@@ -145,15 +145,16 @@ void RelayOpenDC(void) {
       last = millis();
       flowmeter_reader();
       client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
+      client.publish((String(truck_id) + "/valve_state").c_str(), "جاري الفتح");
       client.loop();
     }
-  }
-  digitalWrite(RELAY_OPEN, LOW);
+  }  
+  digitalWrite(RELAY_OPEN, HIGH);
 }
 
 void RelayCloseDC(uint32_t closeTime) {
-  digitalWrite(RELAY_OPEN, LOW);
-  digitalWrite(RELAY_CLOSE, HIGH);
+  digitalWrite(RELAY_OPEN, HIGH);
+  digitalWrite(RELAY_CLOSE, LOW);
   long td = millis();
   while ((millis() - td < closeTime)) {
     static unsigned long lasst = 0;
@@ -161,9 +162,10 @@ void RelayCloseDC(uint32_t closeTime) {
       lasst = millis();
       flowmeter_reader();
       client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
+      client.publish((String(truck_id) + "/valve_state").c_str(), "جاري الغلق");
     }
   }
-  digitalWrite(RELAY_CLOSE, LOW);
+  digitalWrite(RELAY_CLOSE, HIGH);
 }
 
 
@@ -238,6 +240,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
       if (is_running) {
         if (force_stop)
           RelayCloseDC(TIME_OPEN_DC+1000);
+        client.publish((String(truck_id) + "/valve_state").c_str(), "مغلق");
         is_running = false;
         Serial.println("Truck stopped");
         logdata += "," + String(flow_meter_value - flow_meter_prev_value);
@@ -375,6 +378,7 @@ void loop() {
     client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
 
     if (is_running && result == node.ku8MBSuccess) {
+      client.publish((String(truck_id) + "/valve_state").c_str(), "مفتوح");
       float FlowRate = flow_rate_reader();
       remain_Quantity = (flow_meter_prev_value + required_Quantity - flow_meter_value);
       double ExtraWater = (FlowRate / 2.0) * thirdCloseTime/1000;
