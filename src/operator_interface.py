@@ -1,9 +1,10 @@
 from PyQt6 import QtCore, QtWidgets, QtGui
-from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action, update_log_on_stop, get_logs, server_log, get_operator_id, get_channel_entry, get_config
+from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action, update_log_on_stop, get_logs, server_log, get_operator_id, get_channel_entry, get_config, create_server_connection
 import threading
 import time
 import paho.mqtt.client as mqtt  
 from login_window import LoginWindow 
+import pyodbc
 
 class WaterTankWidget(QtWidgets.QWidget):
     def __init__(self, max_level=100):
@@ -75,9 +76,18 @@ class OperatorInterface(QtWidgets.QWidget):
         self.actual_quantities = {}  # Dictionary to store actual quantities for each port
         self.status = {}  
         self.sent_logs = set()
+        self.db_connected = self.check_db_connection()
         self.init_ui()
         self.update_flowmeter_signal.connect(self.update_flowmeter_readings)
         self.start_mqtt_thread()                
+
+    def check_db_connection(self):
+        try:
+            connection = create_server_connection()
+            connection.close()
+            return True
+        except pyodbc.OperationalError:
+            return False
 
     def init_ui(self):
         self.setWindowTitle(f"نظام تعبئة المياه - المشغل: {self.operator_name}")
@@ -201,6 +211,7 @@ class OperatorInterface(QtWidgets.QWidget):
 
             card_layout.addLayout(form_layout)
             card.setLayout(card_layout)
+            card.setFixedSize(350, 800)
 
             self.port_cards_layout.addWidget(card, idx // 5, idx % 5) 
 
@@ -239,13 +250,14 @@ class OperatorInterface(QtWidgets.QWidget):
                     self.mqtt_client.publish(f"{port_name}/quantity", quantity)
                     self.mqtt_client.publish(f"{port_name}/state", "start")
                     water_tank.setMaxLevel(float(quantity))  
-                    try:
-                        server_log(int(chanel_truck_number), int(truck_number))
-                        server_log(int(chanel_operator_id), operator_id)
-                        server_log(int(chanel_receipt_number), int(receipt_number))
-                        server_log(int(chanel_required_quantity), quantity)
-                    except (ValueError, ConnectionError) as e:
-                        print(f"Error logging server data: {e}")
+                    if self.db_connected:
+                        try:
+                            server_log(int(chanel_truck_number), int(truck_number))
+                            server_log(int(chanel_operator_id), operator_id)
+                            server_log(int(chanel_receipt_number), int(receipt_number))
+                            server_log(int(chanel_required_quantity), quantity)
+                        except (ValueError, ConnectionError, pyodbc.OperationalError) as e:
+                            print(f"Error logging server data: {e}")
                 else :
                         QtWidgets.QMessageBox.critical(self, "خطأ", "المنفذ قيد التعبئة بالفعل")
             else:
@@ -260,7 +272,8 @@ class OperatorInterface(QtWidgets.QWidget):
             print(f"Error connecting to database: {e}")
             chanel_truck_number, chanel_operator_id, chanel_receipt_number, chanel_required_quantity, chanel_actual_quantity, chanel_flowmeter = None, None, None, None, None, None
 
-        self.mqtt_client.publish(f"{port_name}/state", "stop")
+        if self.mqtt_client:
+            self.mqtt_client.publish(f"{port_name}/state", "stop")
 
     def get_actual_quantity(self, port_name):
         return self.actual_quantities.get(port_name, 0)
@@ -363,10 +376,11 @@ class OperatorInterface(QtWidgets.QWidget):
                 except Exception as e:
                     print(f"Error updating log on stop: {e}")
                 self.enable_card_fields(port_name)        
-                try:
-                    server_log(chanel_actual_quantity, float(actual_quantity))
-                except ValueError as e:
-                    print(f"Error logging actual quantity: {e}")
+                if self.db_connected:
+                    try:
+                        server_log(chanel_actual_quantity, float(actual_quantity))
+                    except (ValueError, pyodbc.OperationalError) as e:
+                        print(f"Error logging actual quantity: {e}")
         elif "/update" in topic:
             port_name = topic.split('/')[0]
             config = ','.join(get_config(port_name))
