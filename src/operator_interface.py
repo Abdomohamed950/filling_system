@@ -118,7 +118,6 @@ class OperatorInterface(QtWidgets.QWidget):
         reconnect_button.clicked.connect(self.check_db_connection)
         top_layout.addWidget(reconnect_button)
 
-        
         self.clock_label = QtWidgets.QLabel(self)
         self.clock_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.clock_label.setStyleSheet("color: #3EB489; font-size: 24px;")
@@ -202,6 +201,9 @@ class OperatorInterface(QtWidgets.QWidget):
             flow_meter_reading_label = QtWidgets.QLabel("قراءة عداد التدفق: 0")
             flow_meter_reading_label.setObjectName("Flow Meter Reading")
 
+            valve_state_label = QtWidgets.QLabel("حالة المحبس: غير معروف")
+            valve_state_label.setObjectName("Valve State")
+
             water_tank = WaterTankWidget()
             water_tank.setObjectName("water_tank")
 
@@ -217,6 +219,7 @@ class OperatorInterface(QtWidgets.QWidget):
             form_layout.addRow(target_quantity_label, add_quantity_entry)
             form_layout.addRow(actual_quantity_label)
             form_layout.addRow(flow_meter_reading_label)
+            form_layout.addRow(valve_state_label)
             form_layout.addRow(water_tank)
             form_layout.addRow(start_button)
             form_layout.addRow(stop_button)
@@ -325,6 +328,14 @@ class OperatorInterface(QtWidgets.QWidget):
                 actual_quantity_label.setText(f"الكمية الفعلية: {actual_quantity}")
                 break
 
+    def update_valve_state_label(self, port_name, valve_state):
+        for i in range(self.port_cards_layout.count()):
+            card = self.port_cards_layout.itemAt(i).widget()
+            if card.title() == port_name:
+                valve_state_label = card.findChild(QtWidgets.QLabel, "Valve State")
+                valve_state_label.setText(f"حالة المحبس: {valve_state}")
+                break
+
     def disable_card_fields(self, port_name):
         for i in range(self.port_cards_layout.count()):
             card = self.port_cards_layout.itemAt(i).widget()
@@ -404,6 +415,10 @@ class OperatorInterface(QtWidgets.QWidget):
             config = ','.join(get_config(port_name))
             self.mqtt_client.publish(f"{port_name}/conf", config)
             print(config)
+        elif "/valve_state" in topic:
+            port_name = topic.split('/')[0]
+            valve_state = payload
+            self.update_valve_state_label(port_name, valve_state)
 
     def get_card_by_port_name(self, port_name):
         for i in range(self.port_cards_layout.count()):
