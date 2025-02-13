@@ -76,6 +76,7 @@ class OperatorInterface(QtWidgets.QWidget):
         self.actual_quantities = {}  # Dictionary to store actual quantities for each port
         self.status = {}  
         self.sent_logs = set()
+        self.connection_status_label = QtWidgets.QLabel(self)  # Initialize the label here
         self.db_connected = self.check_db_connection()
         self.init_ui()
         self.update_flowmeter_signal.connect(self.update_flowmeter_readings)
@@ -85,9 +86,14 @@ class OperatorInterface(QtWidgets.QWidget):
         try:
             connection = create_server_connection()
             connection.close()
-            return True
+            self.db_connected = True
+            self.connection_status_label.setText("Connected")
+            self.connection_status_label.setStyleSheet("color: green;")
         except pyodbc.OperationalError:
-            return False
+            self.db_connected = False
+            self.connection_status_label.setText("Disconnected")
+            self.connection_status_label.setStyleSheet("color: red;")
+        return self.db_connected
 
     def init_ui(self):
         self.setWindowTitle(f"نظام تعبئة المياه - المشغل: {self.operator_name}")
@@ -105,6 +111,12 @@ class OperatorInterface(QtWidgets.QWidget):
         logo_label.setPixmap(logo_pixmap)
         logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         top_layout.addWidget(logo_label)
+
+        top_layout.addWidget(self.connection_status_label)
+
+        reconnect_button = QtWidgets.QPushButton("Reconnect", self)
+        reconnect_button.clicked.connect(self.check_db_connection)
+        top_layout.addWidget(reconnect_button)
 
         
         self.clock_label = QtWidgets.QLabel(self)
@@ -258,6 +270,9 @@ class OperatorInterface(QtWidgets.QWidget):
                             server_log(int(chanel_required_quantity), quantity)
                         except (ValueError, ConnectionError, pyodbc.OperationalError) as e:
                             print(f"Error logging server data: {e}")
+                            self.db_connected = False
+                            self.connection_status_label.setText("Disconnected")
+                            self.connection_status_label.setStyleSheet("color: red;")
                 else :
                         QtWidgets.QMessageBox.critical(self, "خطأ", "المنفذ قيد التعبئة بالفعل")
             else:
@@ -381,6 +396,9 @@ class OperatorInterface(QtWidgets.QWidget):
                         server_log(chanel_actual_quantity, float(actual_quantity))
                     except (ValueError, pyodbc.OperationalError) as e:
                         print(f"Error logging actual quantity: {e}")
+                        self.db_connected = False
+                        self.connection_status_label.setText("Disconnected")
+                        self.connection_status_label.setStyleSheet("color: red;")
         elif "/update" in topic:
             port_name = topic.split('/')[0]
             config = ','.join(get_config(port_name))
