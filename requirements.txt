@@ -1,3 +1,5 @@
 PyQt6
 paho-mqtt
 pyodbc
+Pillow
+numpy
