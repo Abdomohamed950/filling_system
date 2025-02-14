@@ -5,6 +5,8 @@ import time
 import paho.mqtt.client as mqtt  
 from login_window import LoginWindow 
 import pyodbc
+from PIL import Image, ImageDraw
+import numpy as np
 
 class WaterTankWidget(QtWidgets.QWidget):
     def __init__(self, max_level=100):
@@ -12,6 +14,9 @@ class WaterTankWidget(QtWidgets.QWidget):
         self.max_level = max_level  
         self._water_level = 0 
         self.setMinimumSize(200, 400)  
+        
+        self.tank_image = Image.open('src/tank.png')
+        self.tank_image = self.tank_image.resize((200, 400)) 
 
     def setWaterLevel(self, level):
         self._water_level = max(0, min(level, self.max_level))
@@ -27,39 +32,43 @@ class WaterTankWidget(QtWidgets.QWidget):
         self.update()
 
     def paintEvent(self, event):
-        painter = QtGui.QPainter(self)
-        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        with QtGui.QPainter(self) as painter:
+            painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
-        painter.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0), 2))
+            new_img = self.tank_image.copy()
+            draw = ImageDraw.Draw(new_img, "RGBA")
 
-        top_rect = QtCore.QRectF(50, 40, 100, 30)
-        painter.drawEllipse(top_rect)
+            mask = Image.new("L", new_img.size, 0)
+            mask_draw = ImageDraw.Draw(mask)
 
-        painter.drawLine(50, 55, 50, 350)
-        painter.drawLine(150, 55, 150, 350)
+            fill_start_y = 240 
+            fill_end_y = 315    
+            fill_x_min = 95     
+            fill_x_max = 177    
 
-        bottom_rect = QtCore.QRectF(50, 340, 100, 30)
-        painter.drawEllipse(bottom_rect)
+            mask_draw.ellipse([(fill_x_min, fill_start_y), (fill_x_max, fill_end_y)], fill=255)
 
-        for i in range(6):
-            y = 100 + i * 40
-            painter.drawArc(50, y, 100, 20, 0, 180 * 16)  
+            current_fill_level = int(fill_end_y - (self._water_level / self.max_level) * (fill_end_y - fill_start_y))
 
-        water_height = int((self._water_level / self.max_level) * 290)
-        water_top = 340 - water_height
+            water_layer = Image.new("RGBA", new_img.size, (0, 0, 0, 0))
+            water_draw = ImageDraw.Draw(water_layer)
+            water_draw.ellipse([(fill_x_min, current_fill_level), (fill_x_max, fill_end_y)], fill=(0, 150, 255, 150))
 
-        water_path = QtGui.QPainterPath()
-        water_path.addRoundedRect(50, water_top, 100, water_height, 20, 20)
-        painter.fillPath(water_path, QtGui.QColor(0, 100, 255, 150))
+            new_img = Image.composite(water_layer, new_img, mask)
 
-        wave_rect = QtCore.QRectF(50, water_top - 10, 100, 20)
-        painter.drawArc(wave_rect, 0, 180 * 16)
+            new_img = new_img.convert("RGBA")
+            data = new_img.tobytes("raw", "RGBA")
+            qimage = QtGui.QImage(data, new_img.size[0], new_img.size[1], QtGui.QImage.Format.Format_RGBA8888)
+            pixmap = QtGui.QPixmap.fromImage(qimage)
+            
+            painter.drawPixmap(0, 0, pixmap)
+            
+            painter.setFont(QtGui.QFont("Arial", 10))
+            painter.setPen(QtGui.QPen(QtGui.QColor(255, 0, 0), 1))  
+            painter.drawText(50, current_fill_level - 20, f"المتبقي: {self.max_level - self._water_level} L")
+            # painter.setPen(QtGui.QPen(QtGui.QColor(255, 0, 0), 1)) 
+            # painter.drawText(50, 360, f"المتبقي: {self.max_level - self._water_level} L")
 
-        painter.setFont(QtGui.QFont("Arial", 10))
-        painter.setPen(QtGui.QPen(QtGui.QColor(0, 255, 0), 1))  
-        painter.drawText(50, water_top - 20, f"المملوء: {self._water_level} L")
-        painter.setPen(QtGui.QPen(QtGui.QColor(255, 0, 0), 1)) 
-        painter.drawText(50, 360, f"المتبقي: {self.max_level - self._water_level} L")
 
 class OperatorInterface(QtWidgets.QWidget):
     value = 0
@@ -106,7 +115,7 @@ class OperatorInterface(QtWidgets.QWidget):
 
         
         logo_label = QtWidgets.QLabel(self)
-        logo_pixmap = QtGui.QPixmap("src/logo.png")  
+        logo_pixmap = QtGui.QPixmap("src/.png")  
         logo_pixmap = logo_pixmap.scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
         logo_label.setPixmap(logo_pixmap)
         logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
