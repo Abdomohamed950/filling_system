@@ -1,5 +1,5 @@
 from PyQt6 import QtCore, QtWidgets
-from database import create_table, add_operator, remove_operator, list_operators, is_password_unique, add_port, remove_port, get_ports, get_logs, update_port, is_port_name_unique, update_operator, get_channel_entries, update_channel_entry, get_channel_entry
+from database import create_table, add_operator, remove_operator, list_operators, is_password_unique, add_port, remove_port, get_ports, get_logs, update_port, is_port_name_unique, update_operator, get_channel_entries, update_channel_entry, get_channel_entry, get_addresses, update_addresses
 from login_window import LoginWindow  # Import LoginWindow from the new file
 
 class AdminInterface(QtWidgets.QWidget):
@@ -74,6 +74,20 @@ class AdminInterface(QtWidgets.QWidget):
         scroll_area_channels.setWidget(scroll_content_channels)
         channel_layout.addWidget(scroll_area_channels)
 
+        # Add MQTT Address and Server Address fields
+        addresses_layout = QtWidgets.QFormLayout()
+        self.mqtt_address_entry = QtWidgets.QLineEdit()
+        self.server_address_entry = QtWidgets.QLineEdit()
+        addresses_layout.addRow("MQTT Address:", self.mqtt_address_entry)
+        addresses_layout.addRow("Server Address:", self.server_address_entry)
+
+        save_addresses_button = QtWidgets.QPushButton("Save Addresses")
+        save_addresses_button.clicked.connect(self.save_addresses_action)
+        addresses_layout.addWidget(save_addresses_button)
+
+        channel_layout.addLayout(addresses_layout)
+        channel_layout.addWidget(scroll_area_channels)
+
         channel_frame.setLayout(channel_layout)
 
         notebook.addTab(channel_frame, "القنوات")
@@ -86,6 +100,7 @@ class AdminInterface(QtWidgets.QWidget):
         logout_button.clicked.connect(self.logout_action)
         main_layout.addWidget(logout_button)
 
+        self.load_addresses()
         self.auto_refresh()
         
 
@@ -823,6 +838,17 @@ class AdminInterface(QtWidgets.QWidget):
         QtWidgets.QMessageBox.information(self, "النتيجة", "تم تحديث إدخال القناة بنجاح.")
         self.list_channels_action()
         dialog.accept()
+
+    def save_addresses_action(self):
+        mqtt_address = self.mqtt_address_entry.text()
+        server_address = self.server_address_entry.text()
+        update_addresses(mqtt_address, server_address)
+        QtWidgets.QMessageBox.information(self, "النتيجة", "تم حفظ العناوين بنجاح.")
+
+    def load_addresses(self):
+        mqtt_address, server_address = get_addresses()
+        self.mqtt_address_entry.setText(mqtt_address)
+        self.server_address_entry.setText(server_address)
 
 
 if __name__ == "__main__":

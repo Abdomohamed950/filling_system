@@ -1,5 +1,5 @@
 from PyQt6 import QtCore, QtWidgets, QtGui
-from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action, update_log_on_stop, get_logs, server_log, get_operator_id, get_channel_entry, get_config, create_server_connection
+from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action, update_log_on_stop, get_logs, server_log, get_operator_id, get_channel_entry, get_config, create_server_connection, get_addresses
 import threading
 import time
 import paho.mqtt.client as mqtt  
@@ -16,7 +16,12 @@ class WaterTankWidget(QtWidgets.QWidget):
         self.setMinimumSize(200, 400)  
         
         self.tank_image = Image.open('src/tank.png')
-        self.tank_image = self.tank_image.resize((200, 400)) 
+        ports = get_ports()
+        num_ports = len(ports)
+        if num_ports > 6:
+            self.tank_image = self.tank_image.resize((200, 400))
+        else:
+            self.tank_image = self.tank_image.resize((350, 520)) 
 
     def setWaterLevel(self, level):
         self._water_level = max(0, min(level, self.max_level))
@@ -32,6 +37,8 @@ class WaterTankWidget(QtWidgets.QWidget):
         self.update()
 
     def paintEvent(self, event):
+        ports = get_ports()
+        num_ports = len(ports)
         with QtGui.QPainter(self) as painter:
             painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
@@ -40,11 +47,16 @@ class WaterTankWidget(QtWidgets.QWidget):
 
             mask = Image.new("L", new_img.size, 0)
             mask_draw = ImageDraw.Draw(mask)
-
-            fill_start_y = 240 
-            fill_end_y = 315    
-            fill_x_min = 95     
-            fill_x_max = 177    
+            if num_ports > 5:
+                fill_start_y = 240 
+                fill_end_y = 315    
+                fill_x_min = 95     
+                fill_x_max = 177
+            else:
+                fill_start_y = 312
+                fill_end_y = 410
+                fill_x_min = 166
+                fill_x_max = 311
 
             mask_draw.ellipse([(fill_x_min, fill_start_y), (fill_x_max, fill_end_y)], fill=255)
 
@@ -65,9 +77,9 @@ class WaterTankWidget(QtWidgets.QWidget):
             
             painter.setFont(QtGui.QFont("Arial", 10))
             painter.setPen(QtGui.QPen(QtGui.QColor(255, 0, 0), 1))  
-            painter.drawText(50, current_fill_level - 20, f"المتبقي: {self.max_level - self._water_level} L")
-            # painter.setPen(QtGui.QPen(QtGui.QColor(255, 0, 0), 1)) 
-            # painter.drawText(50, 360, f"المتبقي: {self.max_level - self._water_level} L")
+            painter.drawText(210, current_fill_level - 40, f"المتبقي: {self.max_level - self._water_level} L")
+            painter.setPen(QtGui.QPen(QtGui.QColor(0, 255, 0), 1)) 
+            painter.drawText(210, 390, f"الممتلئ: {self._water_level} L")
 
 
 class OperatorInterface(QtWidgets.QWidget):
@@ -85,8 +97,9 @@ class OperatorInterface(QtWidgets.QWidget):
         self.actual_quantities = {}  # Dictionary to store actual quantities for each port
         self.status = {}  
         self.sent_logs = set()
-        self.connection_status_label = QtWidgets.QLabel(self)  # Initialize the label here
+        # self.connection_status_label   # Initialize the label here
         self.db_connected = self.check_db_connection()
+        # self.db_connected = False
         self.init_ui()
         self.update_flowmeter_signal.connect(self.update_flowmeter_readings)
         self.start_mqtt_thread()                
@@ -96,12 +109,12 @@ class OperatorInterface(QtWidgets.QWidget):
             connection = create_server_connection()
             connection.close()
             self.db_connected = True
-            self.connection_status_label.setText("Connected")
-            self.connection_status_label.setStyleSheet("color: green;")
+            self.connection_status_label="متصل"
+            # self.connection_status_label.setStyleSheet("color: green;")
         except pyodbc.OperationalError:
             self.db_connected = False
-            self.connection_status_label.setText("Disconnected")
-            self.connection_status_label.setStyleSheet("color: red;")
+            self.connection_status_label="غير متصل"
+            # self.connection_status_label.setStyleSheet("color: red;")
         return self.db_connected
 
     def init_ui(self):
@@ -121,11 +134,19 @@ class OperatorInterface(QtWidgets.QWidget):
         logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         top_layout.addWidget(logo_label)
 
-        top_layout.addWidget(self.connection_status_label)
+        connection_layout = QtWidgets.QVBoxLayout()
+        connection_status_text = QtWidgets.QLabel(f"حالة الاتصال:   {self.connection_status_label}")
+        connection_layout.addWidget(connection_status_text)
+        # connection_layout.addWidget(self.connection_status_label)
 
-        reconnect_button = QtWidgets.QPushButton("Reconnect", self)
+        reconnect_button = QtWidgets.QPushButton("اعادة الاتصال", self)
         reconnect_button.clicked.connect(self.check_db_connection)
-        top_layout.addWidget(reconnect_button)
+        connection_layout.addWidget(reconnect_button)
+        
+        connection_layout_widget = QtWidgets.QWidget()
+        connection_layout_widget.setLayout(connection_layout)
+        connection_layout_widget.setFixedSize(200, 100)  # Set the desired size
+        top_layout.addWidget(connection_layout_widget, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
 
         self.clock_label = QtWidgets.QLabel(self)
         self.clock_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -142,19 +163,14 @@ class OperatorInterface(QtWidgets.QWidget):
 
         radio_layout.addWidget(manual_radio)
         radio_layout.addWidget(barcode_radio)
-        top_layout.addLayout(radio_layout)
+        top_layout.addLayout(radio_layout)        
         top_layout.setAlignment(radio_layout, QtCore.Qt.AlignmentFlag.AlignRight)
 
         layout.addLayout(top_layout)
 
-        scroll_area = QtWidgets.QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_content = QtWidgets.QWidget()
-        self.port_cards_layout = QtWidgets.QGridLayout(scroll_content)
-        self.port_cards_layout.setSpacing(30) 
+        self.port_cards_layout = QtWidgets.QGridLayout()  # Change to QGridLayout
         self.load_ports()
-        scroll_area.setWidget(scroll_content)
-        layout.addWidget(scroll_area)
+        layout.addLayout(self.port_cards_layout)
 
         logout_button = QtWidgets.QPushButton("تسجيل الخروج", self)
         logout_button.clicked.connect(self.logout_action)
@@ -184,9 +200,10 @@ class OperatorInterface(QtWidgets.QWidget):
 
     def load_ports(self):
         ports = get_ports()
+        num_ports = len(ports)
         for idx, port in enumerate(ports):
             port_name, mode, config = port
-            card = QtWidgets.QGroupBox(port_name)            
+            card = QtWidgets.QGroupBox(port_name)
             card_layout = QtWidgets.QVBoxLayout()
 
             truck_number_label = QtWidgets.QLabel(":رقم الشاحنة", self)
@@ -206,12 +223,16 @@ class OperatorInterface(QtWidgets.QWidget):
 
             actual_quantity_label = QtWidgets.QLabel("الكمية الفعلية: 0")
             actual_quantity_label.setObjectName("Actual Quantity")
+            actual_quantity_label.setMaximumSize(200, 30)  # أكبر حجم ممكن: عرض 200 بكسل، ارتفاع 40 بكسل
 
-            flow_meter_reading_label = QtWidgets.QLabel("قراءة عداد التدفق: 0")
+            flow_meter_reading_label = QtWidgets.QLabel("قراءة العداد: 0")
             flow_meter_reading_label.setObjectName("Flow Meter Reading")
+            flow_meter_reading_label.setMaximumSize(200, 30)  # أكبر حجم ممكن: عرض 200 بكسل، ارتفاع 40 بكسل
+
 
             valve_state_label = QtWidgets.QLabel("حالة المحبس: غير معروف")
             valve_state_label.setObjectName("Valve State")
+            valve_state_label.setMaximumSize(200, 30)  # أكبر حجم ممكن: عرض 200 بكسل، ارتفاع 40 بكسل
 
             water_tank = WaterTankWidget()
             water_tank.setObjectName("water_tank")
@@ -225,24 +246,42 @@ class OperatorInterface(QtWidgets.QWidget):
             stop_button.clicked.connect(lambda _, pn=port_name: self.stop_filling(pn))
 
             form_layout = QtWidgets.QGridLayout()
-            form_layout.addWidget(truck_number_label, 0, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-            form_layout.addWidget(truck_number_entry, 0, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
-            form_layout.addWidget(receipt_number_label, 1, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-            form_layout.addWidget(receipt_number_entry, 1, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
-            form_layout.addWidget(target_quantity_label, 2, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-            form_layout.addWidget(add_quantity_entry, 2, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
-            form_layout.addWidget(actual_quantity_label, 0, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-            form_layout.addWidget(flow_meter_reading_label, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-            form_layout.addWidget(valve_state_label, 2, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-            form_layout.addWidget(water_tank, 3, 0)
-            form_layout.addWidget(start_button, 3, 1)
-            form_layout.addWidget(stop_button, 3, 2)
+            if num_ports > 5:
+                form_layout.addWidget(truck_number_label, 0, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+                form_layout.addWidget(truck_number_entry, 0, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
+                form_layout.addWidget(receipt_number_label, 1, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+                form_layout.addWidget(receipt_number_entry, 1, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
+                form_layout.addWidget(target_quantity_label, 2, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+                form_layout.addWidget(add_quantity_entry, 2, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
+                form_layout.addWidget(actual_quantity_label, 3,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(flow_meter_reading_label, 4, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(valve_state_label, 5,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(water_tank, 6, 0,1,2)
+                form_layout.addWidget(start_button, 7, 0, 1, 2)
+                form_layout.addWidget(stop_button, 8, 0, 1, 2)
+            else :
+                form_layout.addWidget(truck_number_label, 0, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+                form_layout.addWidget(truck_number_entry, 0, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(receipt_number_label, 1, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+                form_layout.addWidget(receipt_number_entry, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(target_quantity_label, 2, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+                form_layout.addWidget(add_quantity_entry, 2, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(actual_quantity_label, 3,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(flow_meter_reading_label, 4, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(valve_state_label, 5, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)  # نقل إلى نفس الصف
+                form_layout.addWidget(water_tank, 6, 0, 1, 2)  # العنصر يمتد عبر عمودين
+                form_layout.addWidget(start_button, 7, 0, 1, 2)  # العنصر يمتد عبر عمودين
+                form_layout.addWidget(stop_button, 8, 0, 1, 2)  # العنصر يمتد عبر عمودين
 
             card_layout.addLayout(form_layout)
             card.setLayout(card_layout)
-            card.setFixedSize(445, 530)  # Adjust the size to take up less space
+            if num_ports > 5:
+                card.setFixedSize(210, 700)  # Adjust the size to fit 8 cards side by side
+                self.port_cards_layout.addWidget(card, idx // 8, idx % 8)  # Add card to the grid layout
+            else:
+                card.setFixedSize(350, 800)  # Adjust the size for fewer cards
+                self.port_cards_layout.addWidget(card, idx // 5, idx % 5)  # Add card to the grid layout
 
-            self.port_cards_layout.addWidget(card, idx // 4, idx % 4) 
 
     def change_mode(self, mode):
         self.mode = mode
@@ -288,8 +327,8 @@ class OperatorInterface(QtWidgets.QWidget):
                         except (ValueError, ConnectionError, pyodbc.OperationalError) as e:
                             print(f"Error logging server data: {e}")
                             self.db_connected = False
-                            self.connection_status_label.setText("Disconnected")
-                            self.connection_status_label.setStyleSheet("color: red;")
+                            self.connection_status_label="غير متصل"
+                            # self.connection_status_label.setStyleSheet("color: red;")
                 else :
                         QtWidgets.QMessageBox.critical(self, "خطأ", "المنفذ قيد التعبئة بالفعل")
             else:
@@ -314,7 +353,8 @@ class OperatorInterface(QtWidgets.QWidget):
         self.mqtt_client = mqtt.Client()
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_message = self.on_message
-        self.mqtt_client.connect("localhost", 1883, 60)
+        mqtt_address, server_address = get_addresses()
+        self.mqtt_client.connect(mqtt_address, 1883, 60)
         self.mqtt_thread = threading.Thread(target=self.mqtt_client.loop_forever)
         self.mqtt_thread.start()
 
@@ -422,8 +462,8 @@ class OperatorInterface(QtWidgets.QWidget):
                     except (ValueError, pyodbc.OperationalError) as e:
                         print(f"Error logging actual quantity: {e}")
                         self.db_connected = False
-                        self.connection_status_label.setText("Disconnected")
-                        self.connection_status_label.setStyleSheet("color: red;")
+                        self.connection_status_label="غير متصل"
+                        # self.connection_status_label.setStyleSheet("color: red;")
         elif "/update" in topic:
             port_name = topic.split('/')[0]
             config = ','.join(get_config(port_name))

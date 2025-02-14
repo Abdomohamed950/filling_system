@@ -2,12 +2,13 @@ import sqlite3
 import pyodbc
 
 def create_server_connection():    
+    mqtt_address, server_address = get_addresses()
     connection = pyodbc.connect(
-        "DRIVER={ODBC Driver 17 for SQL Server};"
-        "SERVER=197.134.251.84\\HYPERSCADA,1433;"  
-        "DATABASE=HyperScada;"      
-        "UID=khaled;"        
-        "PWD=Khaleho@123;"        
+        f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+        f"SERVER={server_address}\\HYPERSCADA,1433;"
+        "DATABASE=HyperScada;"
+        "UID=khaled;"
+        "PWD=Khaleho@123;"
     )
     return connection
 
@@ -69,6 +70,13 @@ def create_table():
             receipt_number TEXT,
             required_quantity TEXT,
             actual_quantity TEXT
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS addresses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            mqtt_address TEXT,
+            server_address TEXT
         )
     ''')
     conn.commit()
@@ -307,3 +315,18 @@ def get_channel_entry(port_name):
     result = cursor.fetchone()
     conn.close()
     return result
+
+def get_addresses():
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT mqtt_address, server_address FROM addresses ORDER BY id DESC LIMIT 1")
+    result = cursor.fetchone()
+    conn.close()
+    return result if result else ("", "")
+
+def update_addresses(mqtt_address, server_address):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO addresses (mqtt_address, server_address) VALUES (?, ?)", (mqtt_address, server_address))
+    conn.commit()
+    conn.close()
