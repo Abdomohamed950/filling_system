@@ -115,7 +115,7 @@ class OperatorInterface(QtWidgets.QWidget):
 
         
         logo_label = QtWidgets.QLabel(self)
-        logo_pixmap = QtGui.QPixmap("src/.png")  
+        logo_pixmap = QtGui.QPixmap("src/logo.png")  
         logo_pixmap = logo_pixmap.scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
         logo_label.setPixmap(logo_pixmap)
         logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
@@ -189,20 +189,20 @@ class OperatorInterface(QtWidgets.QWidget):
             card = QtWidgets.QGroupBox(port_name)            
             card_layout = QtWidgets.QVBoxLayout()
 
-            truck_number_label = QtWidgets.QLabel("رقم الشاحنة:", self)
+            truck_number_label = QtWidgets.QLabel(":رقم الشاحنة", self)
             truck_number_entry = QtWidgets.QLineEdit()
-            truck_number_entry.setObjectName("truck_number_entry")
-            truck_number_entry.setPlaceholderText("أدخل رقم الشاحنة")
+            truck_number_entry.setObjectName("truck_number_entry")        
+            truck_number_entry.setFixedSize(100, 30)  # Adjust size
 
-            receipt_number_label = QtWidgets.QLabel("رقم الإيصال:", self)
+            receipt_number_label = QtWidgets.QLabel(":رقم الإيصال", self)
             receipt_number_entry = QtWidgets.QLineEdit()
             receipt_number_entry.setObjectName("receipt_number_entry")
-            receipt_number_entry.setPlaceholderText("أدخل رقم الإيصال")
+            receipt_number_entry.setFixedSize(100, 30)  # Adjust size
 
-            target_quantity_label = QtWidgets.QLabel("الكمية المطلوبة:", self)
+            target_quantity_label = QtWidgets.QLabel(":الكمية المطلوبة", self)
             add_quantity_entry = QtWidgets.QLineEdit()
             add_quantity_entry.setObjectName("add_quantity_entry")
-            add_quantity_entry.setPlaceholderText("أدخل الكمية المراد إضافتها")
+            add_quantity_entry.setFixedSize(100, 30)  # Adjust size
 
             actual_quantity_label = QtWidgets.QLabel("الكمية الفعلية: 0")
             actual_quantity_label.setObjectName("Actual Quantity")
@@ -215,6 +215,8 @@ class OperatorInterface(QtWidgets.QWidget):
 
             water_tank = WaterTankWidget()
             water_tank.setObjectName("water_tank")
+            # water_tank.setFixedSize(150, 300)  # Adjust the size as needed
+
 
             start_button = QtWidgets.QPushButton("ابدأ")
             start_button.clicked.connect(lambda _, pn=port_name, aqe=add_quantity_entry, rne=receipt_number_entry, tne=truck_number_entry, wt=water_tank: self.start_filling(pn, aqe, rne, tne, wt))
@@ -222,22 +224,25 @@ class OperatorInterface(QtWidgets.QWidget):
             stop_button = QtWidgets.QPushButton("توقف")
             stop_button.clicked.connect(lambda _, pn=port_name: self.stop_filling(pn))
 
-            form_layout = QtWidgets.QFormLayout()
-            form_layout.addRow(truck_number_label, truck_number_entry)
-            form_layout.addRow(receipt_number_label, receipt_number_entry)
-            form_layout.addRow(target_quantity_label, add_quantity_entry)
-            form_layout.addRow(actual_quantity_label)
-            form_layout.addRow(flow_meter_reading_label)
-            form_layout.addRow(valve_state_label)
-            form_layout.addRow(water_tank)
-            form_layout.addRow(start_button)
-            form_layout.addRow(stop_button)
+            form_layout = QtWidgets.QGridLayout()
+            form_layout.addWidget(truck_number_label, 0, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+            form_layout.addWidget(truck_number_entry, 0, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
+            form_layout.addWidget(receipt_number_label, 1, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+            form_layout.addWidget(receipt_number_entry, 1, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
+            form_layout.addWidget(target_quantity_label, 2, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+            form_layout.addWidget(add_quantity_entry, 2, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
+            form_layout.addWidget(actual_quantity_label, 0, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+            form_layout.addWidget(flow_meter_reading_label, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+            form_layout.addWidget(valve_state_label, 2, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+            form_layout.addWidget(water_tank, 3, 0)
+            form_layout.addWidget(start_button, 3, 1)
+            form_layout.addWidget(stop_button, 3, 2)
 
             card_layout.addLayout(form_layout)
             card.setLayout(card_layout)
-            card.setFixedSize(350, 800)
+            card.setFixedSize(445, 530)  # Adjust the size to take up less space
 
-            self.port_cards_layout.addWidget(card, idx // 5, idx % 5) 
+            self.port_cards_layout.addWidget(card, idx // 4, idx % 4) 
 
     def change_mode(self, mode):
         self.mode = mode
