@@ -112,7 +112,10 @@ void flowmeter_reader() {
     int2f int2f_obj;
     int2f_obj.intVal = value;
     flow_meter_value = int2f_obj.f;
+    client.publish((String(truck_id) + "/flowmeter").c_str(), String(value).c_str());
   }
+  else
+    client.publish((String(truck_id) + "/flowmeter").c_str(), "العداد غير متصل");
 }
 
 
@@ -136,36 +139,34 @@ float flow_rate_reader() {
 
 // ------------------------------------valve functions-------------------------------
 void RelayOpenDC(void) {
-  digitalWrite(RELAY_CLOSE, HIGH);
-  digitalWrite(RELAY_OPEN, LOW);
+  digitalWrite(RELAY_CLOSE, LOW);
+  digitalWrite(RELAY_OPEN, HIGH);
   long td = millis();
   while ((millis() - td < TIME_OPEN_DC)) {
     static unsigned long last = 0;
     if (millis() - last > 100) {
       last = millis();
-      flowmeter_reader();
-      client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
+      flowmeter_reader();      
       client.publish((String(truck_id) + "/valve_state").c_str(), "جاري الفتح");
       client.loop();
     }
   }  
-  digitalWrite(RELAY_OPEN, HIGH);
+  digitalWrite(RELAY_OPEN, LOW);
 }
 
 void RelayCloseDC(uint32_t closeTime) {
-  digitalWrite(RELAY_OPEN, HIGH);
-  digitalWrite(RELAY_CLOSE, LOW);
+  digitalWrite(RELAY_OPEN, LOW);
+  digitalWrite(RELAY_CLOSE, HIGH);
   long td = millis();
   while ((millis() - td < closeTime)) {
     static unsigned long lasst = 0;
     if (millis() - lasst > 100) {
       lasst = millis();
-      flowmeter_reader();
-      client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
+      flowmeter_reader();      
       client.publish((String(truck_id) + "/valve_state").c_str(), "جاري الغلق");
     }
   }
-  digitalWrite(RELAY_CLOSE, HIGH);
+  digitalWrite(RELAY_CLOSE, LOW);
 }
 
 
@@ -375,7 +376,6 @@ void loop() {
     lastPublishTime = millis();
     flowmeter_reader();
     // Serial.println(flow_meter_value);
-    client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
 
     if (is_running && result == node.ku8MBSuccess) {
       client.publish((String(truck_id) + "/valve_state").c_str(), "مفتوح");

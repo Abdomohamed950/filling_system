@@ -65,4 +65,3 @@ int write_index = 0;
 
 
 String config[10];
-
