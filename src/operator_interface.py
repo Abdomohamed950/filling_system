@@ -19,7 +19,7 @@ class WaterTankWidget(QtWidgets.QWidget):
         self.tank_image = Image.open('src/tank.png')
         ports = get_ports()
         num_ports = len(ports)
-        if num_ports > 6:
+        if num_ports > 5:
             self.tank_image = self.tank_image.resize((200, 400))
         else:
             self.tank_image = self.tank_image.resize((350, 520)) 
@@ -77,8 +77,8 @@ class WaterTankWidget(QtWidgets.QWidget):
                 mask2 = Image.new("L", new_img.size, 0)
                 mask_draw2 = ImageDraw.Draw(mask2)
                 if num_ports > 5:
-                    fill_start_y2 = 220 
-                    fill_end_y2 = 295    
+                    fill_start_y2 = 80
+                    fill_end_y2 = 240   
                     fill_x_min2 = 95     
                     fill_x_max2 = 177
                 else:
