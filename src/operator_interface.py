@@ -1,5 +1,5 @@
 from PyQt6 import QtCore, QtWidgets, QtGui
-from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action, update_log_on_stop, get_logs, server_log, get_operator_id, get_channel_entry, get_config, create_server_connection, get_addresses
+from database import get_ports, store_port_data_from_mqtt, create_table, get_flowmeter_value, log_action, update_log_on_stop, get_logs, server_log, get_operator_id, get_channel_entry, get_config, create_server_connection, get_addresses, insert_offline_data, get_offline_data, delete_offline_data
 import threading
 import time
 import paho.mqtt.client as mqtt  
@@ -13,6 +13,7 @@ class WaterTankWidget(QtWidgets.QWidget):
         super().__init__()
         self.max_level = max_level  
         self._water_level = 0 
+        self.valve_state = "مغلق"  # Default valve state
         self.setMinimumSize(200, 400)  
         
         self.tank_image = Image.open('src/tank.png')
@@ -34,6 +35,10 @@ class WaterTankWidget(QtWidgets.QWidget):
 
     def setMaxLevel(self, max_level):
         self.max_level = max_level
+        self.update()
+
+    def setValveState(self, state):
+        self.valve_state = state
         self.update()
 
     def paintEvent(self, event):
@@ -68,6 +73,30 @@ class WaterTankWidget(QtWidgets.QWidget):
 
             new_img = Image.composite(water_layer, new_img, mask)
 
+            if self.valve_state in ["مغلق", "جاري الغلق"]:
+                mask2 = Image.new("L", new_img.size, 0)
+                mask_draw2 = ImageDraw.Draw(mask2)
+                if num_ports > 5:
+                    fill_start_y2 = 220 
+                    fill_end_y2 = 295    
+                    fill_x_min2 = 95     
+                    fill_x_max2 = 177
+                else:
+                    fill_start_y2 = 115
+                    fill_end_y2 = 310
+                    fill_x_min2 = 166
+                    fill_x_max2 = 311
+
+                mask_draw2.ellipse([(fill_x_min2, fill_start_y2), (fill_x_max2, fill_end_y2)], fill=255)
+
+                current_fill_level2 = int(fill_end_y2 - (self._water_level / self.max_level) * (fill_end_y2 - fill_start_y2))
+
+                water_layer2 = Image.new("RGBA", new_img.size, (0, 0, 0, 0))
+                water_draw2 = ImageDraw.Draw(water_layer2)
+                water_draw2.ellipse([(fill_x_min2, current_fill_level2), (fill_x_max2, fill_end_y2)], fill=(0, 150, 255, 150))
+
+                new_img = Image.composite(water_layer2, new_img, mask2)
+
             new_img = new_img.convert("RGBA")
             data = new_img.tobytes("raw", "RGBA")
             qimage = QtGui.QImage(data, new_img.size[0], new_img.size[1], QtGui.QImage.Format.Format_RGBA8888)
@@ -97,9 +126,8 @@ class OperatorInterface(QtWidgets.QWidget):
         self.actual_quantities = {}  # Dictionary to store actual quantities for each port
         self.status = {}  
         self.sent_logs = set()
-        # self.connection_status_label   # Initialize the label here
+        self.connection_status_label = QtWidgets.QLabel()  # Initialize the label here
         self.db_connected = self.check_db_connection()
-        # self.db_connected = False
         self.init_ui()
         self.update_flowmeter_signal.connect(self.update_flowmeter_readings)
         self.start_mqtt_thread()                
@@ -109,13 +137,24 @@ class OperatorInterface(QtWidgets.QWidget):
             connection = create_server_connection()
             connection.close()
             self.db_connected = True
-            self.connection_status_label="متصل"
-            # self.connection_status_label.setStyleSheet("color: green;")
+            self.connection_status_label.setText("متصل")
+            self.resend_offline_data()  # Resend offline data when connection is restored
+            self.connection_status_label.setStyleSheet("color: green;")
         except pyodbc.OperationalError:
             self.db_connected = False
-            self.connection_status_label="غير متصل"
-            # self.connection_status_label.setStyleSheet("color: red;")
+            self.connection_status_label.setText("غير متصل")
+            self.connection_status_label.setStyleSheet("color: red;")
         return self.db_connected
+
+    def resend_offline_data(self):
+        offline_data = get_offline_data()
+        for record in offline_data:
+            record_id, channel_number, actual_value = record
+            try:
+                server_log(channel_number, actual_value)
+                delete_offline_data(record_id)
+            except Exception as e:
+                print(f"Error resending offline data: {e}")
 
     def init_ui(self):
         self.setWindowTitle(f"نظام تعبئة المياه - المشغل: {self.operator_name}")
@@ -135,9 +174,9 @@ class OperatorInterface(QtWidgets.QWidget):
         top_layout.addWidget(logo_label)
 
         connection_layout = QtWidgets.QVBoxLayout()
-        connection_status_text = QtWidgets.QLabel(f"حالة الاتصال:   {self.connection_status_label}")
+        connection_status_text = QtWidgets.QLabel("حالة الاتصال:")
         connection_layout.addWidget(connection_status_text)
-        # connection_layout.addWidget(self.connection_status_label)
+        connection_layout.addWidget(self.connection_status_label)
 
         reconnect_button = QtWidgets.QPushButton("اعادة الاتصال", self)
         reconnect_button.clicked.connect(self.check_db_connection)
@@ -230,7 +269,7 @@ class OperatorInterface(QtWidgets.QWidget):
             flow_meter_reading_label.setMaximumSize(200, 30)  # أكبر حجم ممكن: عرض 200 بكسل، ارتفاع 40 بكسل
 
 
-            valve_state_label = QtWidgets.QLabel("حالة المحبس: غير معروف")
+            valve_state_label = QtWidgets.QLabel("حالة المحبس: مغلق")
             valve_state_label.setObjectName("Valve State")
             valve_state_label.setMaximumSize(200, 30)  # أكبر حجم ممكن: عرض 200 بكسل، ارتفاع 40 بكسل
 
@@ -327,8 +366,17 @@ class OperatorInterface(QtWidgets.QWidget):
                         except (ValueError, ConnectionError, pyodbc.OperationalError) as e:
                             print(f"Error logging server data: {e}")
                             self.db_connected = False
-                            self.connection_status_label="غير متصل"
-                            # self.connection_status_label.setStyleSheet("color: red;")
+                            self.connection_status_label.setText("غير متصل")
+                            self.connection_status_label.setStyleSheet("color: red;")
+                            insert_offline_data(int(chanel_truck_number), int(truck_number))
+                            insert_offline_data(int(chanel_operator_id), operator_id)
+                            insert_offline_data(int(chanel_receipt_number), int(receipt_number))
+                            insert_offline_data(int(chanel_required_quantity), quantity)
+                    else:
+                        insert_offline_data(int(chanel_truck_number), int(truck_number))
+                        insert_offline_data(int(chanel_operator_id), operator_id)
+                        insert_offline_data(int(chanel_receipt_number), int(receipt_number))
+                        insert_offline_data(int(chanel_required_quantity), quantity)
                 else :
                         QtWidgets.QMessageBox.critical(self, "خطأ", "المنفذ قيد التعبئة بالفعل")
             else:
@@ -354,7 +402,10 @@ class OperatorInterface(QtWidgets.QWidget):
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_message = self.on_message
         mqtt_address, server_address = get_addresses()
-        self.mqtt_client.connect(mqtt_address, 1883, 60)
+        try:
+            self.mqtt_client.connect(mqtt_address, 1883, 60)
+        except Exception as e:
+            print(f"Error connecting to MQTT broker: {e}")
         self.mqtt_thread = threading.Thread(target=self.mqtt_client.loop_forever)
         self.mqtt_thread.start()
 
@@ -388,6 +439,8 @@ class OperatorInterface(QtWidgets.QWidget):
             if card.title() == port_name:
                 valve_state_label = card.findChild(QtWidgets.QLabel, "Valve State")
                 valve_state_label.setText(f"حالة المحبس: {valve_state}")
+                water_tank = card.findChild(WaterTankWidget, "water_tank")
+                water_tank.setValveState(valve_state)
                 break
 
     def disable_card_fields(self, port_name):
@@ -462,8 +515,11 @@ class OperatorInterface(QtWidgets.QWidget):
                     except (ValueError, pyodbc.OperationalError) as e:
                         print(f"Error logging actual quantity: {e}")
                         self.db_connected = False
-                        self.connection_status_label="غير متصل"
-                        # self.connection_status_label.setStyleSheet("color: red;")
+                        self.connection_status_label.setText("غير متصل")
+                        self.connection_status_label.setStyleSheet("color: red;")
+                        insert_offline_data(int(chanel_actual_quantity), float(actual_quantity))
+                else:
+                    insert_offline_data(int(chanel_actual_quantity), float(actual_quantity))
         elif "/update" in topic:
             port_name = topic.split('/')[0]
             config = ','.join(get_config(port_name))

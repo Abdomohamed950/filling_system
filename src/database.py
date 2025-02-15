@@ -79,6 +79,13 @@ def create_table():
             server_address TEXT
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS offline (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            channel_number INTEGER,
+            actual_value REAL
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -328,5 +335,27 @@ def update_addresses(mqtt_address, server_address):
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute("INSERT INTO addresses (mqtt_address, server_address) VALUES (?, ?)", (mqtt_address, server_address))
+    conn.commit()
+    conn.close()
+
+def insert_offline_data(channel_number, actual_value):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO offline (channel_number, actual_value) VALUES (?, ?)", (channel_number, actual_value))
+    conn.commit()
+    conn.close()
+
+def get_offline_data():
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, channel_number, actual_value FROM offline")
+    data = cursor.fetchall()
+    conn.close()
+    return data
+
+def delete_offline_data(record_id):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM offline WHERE id = ?", (record_id,))
     conn.commit()
     conn.close()
