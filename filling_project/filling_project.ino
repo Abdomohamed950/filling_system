@@ -1,14 +1,10 @@
 #include <WiFi.h>  //for esp32
-// #include <ESP8266WiFi.h>  //for esp8266
 #include <PubSubClient.h>
 #include <ModbusMaster.h>
 #include "defines.h"
 #include <FS.h>
 #include <SPIFFS.h>
-// #include <LittleFS.h>
-// #define SPIFFS LittleFS
-
-
+#include <WiFiManager.h>  
 
 // ------------------------------------memory functions--------------------------------
 void init_spiffs() {
@@ -38,7 +34,6 @@ void save_index_to_spiffs() {
 }
 
 void add_string_to_queue(const char* str) {
-
   char filename[20];
   snprintf(filename, sizeof(filename), "/queue_%d.txt", write_index);
 
@@ -71,13 +66,6 @@ void print_queue() {
   }
 }
 
-
-
-
-
-
-
-
 // ------------------------------modbus functions------------------------------------
 uint32_t AABBCCDD(uint16_t firstRecv, uint16_t secondRecv) {
   uint8_t u1_right = firstRecv & 0x00ff;
@@ -100,9 +88,6 @@ void postTransmission() {
 void flowmeter_reader() {
   uint32_t value;
   result = node.readHoldingRegisters(config[5].toInt(), REG_IN_ROW);
-  // Serial.print("result = ");
-  // Serial.println(result);
-
   if (result == node.ku8MBSuccess) {
     DATA[0] = node.getResponseBuffer(0);
     DATA[1] = node.getResponseBuffer(1);
@@ -118,11 +103,9 @@ void flowmeter_reader() {
     client.publish((String(truck_id) + "/flowmeter").c_str(), "العداد غير متصل");
 }
 
-
 float flow_rate_reader() {
   uint32_t value;
   result = node.readHoldingRegisters(1999, REG_IN_ROW);  
-
   if (result == node.ku8MBSuccess) {
     DATA[0] = node.getResponseBuffer(0);
     DATA[1] = node.getResponseBuffer(1);
@@ -134,8 +117,6 @@ float flow_rate_reader() {
     return int2f_obj.f;
   }
 }
-
-
 
 // ------------------------------------valve functions-------------------------------
 void RelayOpenDC(void) {
@@ -169,32 +150,24 @@ void RelayCloseDC(uint32_t closeTime) {
   digitalWrite(RELAY_CLOSE, LOW);
 }
 
-
-
-
-
 // --------------------------------------wifi function------------------------------
 void setup_wifi() {
-  delay(10);
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
+  WiFiManager wifiManager;
 
-  WiFi.begin(ssid, password, 0, nullptr, true);
+  // wifiManager.resetSettings();
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  wifiManager.setTimeout(180);
+  
+  if (!wifiManager.autoConnect("ESP32-AP")) {
+    Serial.println("Failed to connect and hit timeout");
+    delay(3000);
+    ESP.restart();
   }
 
-  Serial.println("");
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
 }
-
-
-
 
 // ---------------------------------mqtt functions-------------------------------------
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -211,20 +184,17 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println(message);
 
   if (topicStr == String(truck_id) + "/quantity") {
-
     required_Quantity = message.toFloat();
     flow_meter_prev_value = flow_meter_value;
     Serial.print("Target quantity set to: ");
     Serial.println(required_Quantity);
     client.publish((String(truck_id) + "/state").c_str(), "filling");
-
   }
 
   else if (topicStr == String(truck_id) + "/logdata")
     logdata = message;
 
   else if (topicStr == String(truck_id) + "/state") {
-
     Serial.print("message set to: ");
     Serial.println(message);
     if (message == "start") {
@@ -234,6 +204,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
       secondCloseStatus = 0;
       thirdCloseStatus = 0;
       RelayOpenDC();
+      client.publish((String(truck_id) + "/valve_state").c_str(), "مفتوح");
       Serial.println("Truck started");
     }
 
@@ -251,15 +222,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
   }
 
-  //under tested
   else if (topicStr == String(truck_id) + "/conf") {
     Serial.print("config set to: ");
     Serial.println(message);
     splitString(message, ',', config, 10);
     updated = false;
   }
-
-  // end of under tested
 }
 
 void splitString(const String& str, char delimiter, String result[], int maxParts) {
@@ -274,7 +242,6 @@ void splitString(const String& str, char delimiter, String result[], int maxPart
   }
   result[currentIndex] = str.substring(startIndex);
 }
-
 
 void reconnect() {
   while (!client.connected()) {
@@ -295,13 +262,6 @@ void reconnect() {
   }
 }
 
-
-
-
-
-
-
-
 // ---------------------------------app begin---------------------------------------
 void setup() {
   Serial.begin(115200);
@@ -315,7 +275,6 @@ void setup() {
   init_spiffs();
   load_index_from_spiffs();
 
-  //under test
   if (!client.connected()) {
     reconnect();
   }
@@ -324,7 +283,6 @@ void setup() {
     client.loop();
     delay(1000);
   }
-  // end of under test
 
   if (config[0] == "modbus") {
     SerialConfig frame;
@@ -341,7 +299,6 @@ void setup() {
     else if (config[2] == "SERIAL_8E2")
       frame = SERIAL_8E2;
 
-    // إعدادات Modbus
     pinMode(MAX485_RE_NEG, OUTPUT);
     pinMode(MAX485_DE, OUTPUT);
     postTransmission();
@@ -360,10 +317,7 @@ void setup() {
   for (int i = 0; i < 10; i++) 
     Serial.println("config of " + String(i) + "=\t"+config[i]);
   Serial.println("time_open_dc =\t"+String(TIME_OPEN_DC));
-  
 }
-
-
 
 void loop() {
   if (!client.connected()) {
@@ -375,7 +329,6 @@ void loop() {
   if (millis() - lastPublishTime > 100) {
     lastPublishTime = millis();
     flowmeter_reader();
-    // Serial.println(flow_meter_value);
 
     if (is_running && result == node.ku8MBSuccess) {
       client.publish((String(truck_id) + "/valve_state").c_str(), "مفتوح");
@@ -399,7 +352,6 @@ void loop() {
         force_stop = 0;
         client.publish((String(truck_id) + "/state").c_str(), "stop");
       }
-
     }
   }
 }

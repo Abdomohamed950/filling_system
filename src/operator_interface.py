@@ -116,17 +116,17 @@ class OperatorInterface(QtWidgets.QWidget):
     required_quantity = 0
     initial_flowmeter_value = 0
 
-    # Define the signal correctly
+    
     update_flowmeter_signal = QtCore.pyqtSignal(str, str)
 
     def __init__(self, operator_name):
         super().__init__()
         self.operator_name = operator_name    
         self.flowmeter_values = {} 
-        self.actual_quantities = {}  # Dictionary to store actual quantities for each port
+        self.actual_quantities = {} 
         self.status = {}  
         self.sent_logs = set()
-        self.connection_status_label = QtWidgets.QLabel()  # Initialize the label here
+        self.connection_status_label = QtWidgets.QLabel()  
         self.db_connected = self.check_db_connection()
         self.init_ui()
         self.update_flowmeter_signal.connect(self.update_flowmeter_readings)
@@ -138,7 +138,7 @@ class OperatorInterface(QtWidgets.QWidget):
             connection.close()
             self.db_connected = True
             self.connection_status_label.setText("متصل")
-            self.resend_offline_data()  # Resend offline data when connection is restored
+            self.resend_offline_data()  
             self.connection_status_label.setStyleSheet("color: green;")
         except pyodbc.OperationalError:
             self.db_connected = False
@@ -184,7 +184,7 @@ class OperatorInterface(QtWidgets.QWidget):
         
         connection_layout_widget = QtWidgets.QWidget()
         connection_layout_widget.setLayout(connection_layout)
-        connection_layout_widget.setFixedSize(200, 100)  # Set the desired size
+        connection_layout_widget.setFixedSize(200, 100) 
         top_layout.addWidget(connection_layout_widget, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
 
         self.clock_label = QtWidgets.QLabel(self)
@@ -207,7 +207,7 @@ class OperatorInterface(QtWidgets.QWidget):
 
         layout.addLayout(top_layout)
 
-        self.port_cards_layout = QtWidgets.QGridLayout()  # Change to QGridLayout
+        self.port_cards_layout = QtWidgets.QGridLayout() 
         self.load_ports()
         layout.addLayout(self.port_cards_layout)
 
@@ -245,37 +245,46 @@ class OperatorInterface(QtWidgets.QWidget):
             card = QtWidgets.QGroupBox(port_name)
             card_layout = QtWidgets.QVBoxLayout()
 
-            truck_number_label = QtWidgets.QLabel(":رقم الشاحنة", self)
+            truck_number_label = QtWidgets.QLabel("رقم الشاحنة:", self)
             truck_number_entry = QtWidgets.QLineEdit()
             truck_number_entry.setObjectName("truck_number_entry")        
-            truck_number_entry.setFixedSize(100, 30)  # Adjust size
 
-            receipt_number_label = QtWidgets.QLabel(":رقم الإيصال", self)
+            receipt_number_label = QtWidgets.QLabel("رقم الإيصال:", self)
             receipt_number_entry = QtWidgets.QLineEdit()
             receipt_number_entry.setObjectName("receipt_number_entry")
-            receipt_number_entry.setFixedSize(100, 30)  # Adjust size
 
-            target_quantity_label = QtWidgets.QLabel(":الكمية المطلوبة", self)
+            target_quantity_label = QtWidgets.QLabel("الكمية المطلوبة:", self)
             add_quantity_entry = QtWidgets.QLineEdit()
             add_quantity_entry.setObjectName("add_quantity_entry")
-            add_quantity_entry.setFixedSize(100, 30)  # Adjust size
 
             actual_quantity_label = QtWidgets.QLabel("الكمية الفعلية: 0")
             actual_quantity_label.setObjectName("Actual Quantity")
-            actual_quantity_label.setMaximumSize(200, 30)  # أكبر حجم ممكن: عرض 200 بكسل، ارتفاع 40 بكسل
 
             flow_meter_reading_label = QtWidgets.QLabel("قراءة العداد: 0")
             flow_meter_reading_label.setObjectName("Flow Meter Reading")
-            flow_meter_reading_label.setMaximumSize(200, 30)  # أكبر حجم ممكن: عرض 200 بكسل، ارتفاع 40 بكسل
 
 
             valve_state_label = QtWidgets.QLabel("حالة المحبس: مغلق")
             valve_state_label.setObjectName("Valve State")
-            valve_state_label.setMaximumSize(200, 30)  # أكبر حجم ممكن: عرض 200 بكسل، ارتفاع 40 بكسل
+
+            if num_ports > 5:
+                truck_number_entry.setFixedSize(80, 30)  
+                receipt_number_entry.setFixedSize(80, 30)
+                add_quantity_entry.setFixedSize(80, 30)  
+                actual_quantity_label.setMaximumSize(200, 30)  
+                flow_meter_reading_label.setMaximumSize(200, 30) 
+                valve_state_label.setMaximumSize(200, 30) 
+            else :
+                truck_number_entry.setFixedSize(170, 30)  
+                receipt_number_entry.setFixedSize(170, 30)
+                add_quantity_entry.setFixedSize(170, 30)  
+                actual_quantity_label.setMaximumSize(200, 30)  
+                flow_meter_reading_label.setMaximumSize(200, 30) 
+                valve_state_label.setMaximumSize(200, 30) 
+
 
             water_tank = WaterTankWidget()
-            water_tank.setObjectName("water_tank")
-            # water_tank.setFixedSize(150, 300)  # Adjust the size as needed
+            water_tank.setObjectName("water_tank")            
 
 
             start_button = QtWidgets.QPushButton("ابدأ")
@@ -286,12 +295,12 @@ class OperatorInterface(QtWidgets.QWidget):
 
             form_layout = QtWidgets.QGridLayout()
             if num_ports > 5:
-                form_layout.addWidget(truck_number_label, 0, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-                form_layout.addWidget(truck_number_entry, 0, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
-                form_layout.addWidget(receipt_number_label, 1, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-                form_layout.addWidget(receipt_number_entry, 1, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
-                form_layout.addWidget(target_quantity_label, 2, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-                form_layout.addWidget(add_quantity_entry, 2, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
+                form_layout.addWidget(truck_number_label, 0, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(truck_number_entry, 0, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+                form_layout.addWidget(receipt_number_label, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(receipt_number_entry, 1, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+                form_layout.addWidget(target_quantity_label, 2, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(add_quantity_entry, 2, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
                 form_layout.addWidget(actual_quantity_label, 3,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
                 form_layout.addWidget(flow_meter_reading_label, 4, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
                 form_layout.addWidget(valve_state_label, 5,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
@@ -299,27 +308,27 @@ class OperatorInterface(QtWidgets.QWidget):
                 form_layout.addWidget(start_button, 7, 0, 1, 2)
                 form_layout.addWidget(stop_button, 8, 0, 1, 2)
             else :
-                form_layout.addWidget(truck_number_label, 0, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-                form_layout.addWidget(truck_number_entry, 0, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(receipt_number_label, 1, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-                form_layout.addWidget(receipt_number_entry, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(target_quantity_label, 2, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-                form_layout.addWidget(add_quantity_entry, 2, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(truck_number_label, 0, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(truck_number_entry, 0, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+                form_layout.addWidget(receipt_number_label, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(receipt_number_entry, 1, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+                form_layout.addWidget(target_quantity_label, 2, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(add_quantity_entry, 2, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
                 form_layout.addWidget(actual_quantity_label, 3,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
                 form_layout.addWidget(flow_meter_reading_label, 4, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(valve_state_label, 5, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)  # نقل إلى نفس الصف
-                form_layout.addWidget(water_tank, 6, 0, 1, 2)  # العنصر يمتد عبر عمودين
-                form_layout.addWidget(start_button, 7, 0, 1, 2)  # العنصر يمتد عبر عمودين
-                form_layout.addWidget(stop_button, 8, 0, 1, 2)  # العنصر يمتد عبر عمودين
+                form_layout.addWidget(valve_state_label, 5, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight) 
+                form_layout.addWidget(water_tank, 6, 0, 1, 2) 
+                form_layout.addWidget(start_button, 7, 0, 1, 2) 
+                form_layout.addWidget(stop_button, 8, 0, 1, 2)  
 
             card_layout.addLayout(form_layout)
             card.setLayout(card_layout)
             if num_ports > 5:
-                card.setFixedSize(210, 700)  # Adjust the size to fit 8 cards side by side
-                self.port_cards_layout.addWidget(card, idx // 8, idx % 8)  # Add card to the grid layout
+                card.setFixedSize(210, 700) 
+                self.port_cards_layout.addWidget(card, idx // 8, idx % 8) 
             else:
-                card.setFixedSize(350, 800)  # Adjust the size for fewer cards
-                self.port_cards_layout.addWidget(card, idx // 5, idx % 5)  # Add card to the grid layout
+                card.setFixedSize(350, 800) 
+                self.port_cards_layout.addWidget(card, idx // 5, idx % 5) 
 
 
     def change_mode(self, mode):
@@ -547,7 +556,7 @@ class OperatorInterface(QtWidgets.QWidget):
                     if actual_quantity < 0:
                         actual_quantity = 0
                     self.update_actual_quantity_label(port_name, actual_quantity)
-                    self.actual_quantities[port_name] = actual_quantity  # Update the actual quantity in the dictionary
+                    self.actual_quantities[port_name] = actual_quantity  
                     self.update_progress_bar(port_name, actual_quantity)
                 except ValueError:
                     print(f"Error parsing flow meter value for port {port_name}: {flow_meter_value}")
