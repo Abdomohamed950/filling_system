@@ -1,6 +1,6 @@
 // إعدادات الشبكة
-const char* ssid = "Abdo123";
-const char* password = "01063677938Abdo123@";
+const char* ssid = "test";
+const char* password = "test";
 
 // إعدادات MQTT
 const char* mqtt_server = "192.168.1.7";
@@ -8,7 +8,7 @@ const int mqtt_port = 1883;
 const char* truck_id = "port1";
 
 
-// Modbus إعدادات
+// Modbus إعداد ات
 
 #define MAX485_DE 32
 #define MAX485_RE_NEG 33
@@ -21,6 +21,8 @@ const char* truck_id = "port1";
 #define TXD2 17
 #define RELAY_OPEN 25
 #define RELAY_CLOSE 26
+#define close_putton 5
+#define open_putton 6
 
 typedef union {
   uint32_t intVal;

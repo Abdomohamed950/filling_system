@@ -24,6 +24,11 @@ class WaterTankWidget(QtWidgets.QWidget):
         else:
             self.tank_image = self.tank_image.resize((350, 520)) 
 
+        self.toggle_state = False  # Add a toggle state for blinking effect
+        self.toggle_timer = QtCore.QTimer(self)
+        self.toggle_timer.timeout.connect(self.toggle_circle_color)
+        self.toggle_timer.start(500)  # Toggle every 500ms
+
     def setWaterLevel(self, level):
         self._water_level = max(0, min(level, self.max_level))
         self.update()  
@@ -40,6 +45,11 @@ class WaterTankWidget(QtWidgets.QWidget):
     def setValveState(self, state):
         self.valve_state = state
         self.update()
+
+    def toggle_circle_color(self):
+        if self.valve_state in ["جاري الفتح", "جاري الغلق"]:
+            self.toggle_state = not self.toggle_state
+            self.update()
 
     def paintEvent(self, event):
         ports = get_ports()
@@ -73,7 +83,7 @@ class WaterTankWidget(QtWidgets.QWidget):
 
             new_img = Image.composite(water_layer, new_img, mask)
 
-            if self.valve_state in ["مغلق", "جاري الغلق"]:
+            if self.valve_state in ["مغلق"]:
                 mask2 = Image.new("L", new_img.size, 0)
                 mask_draw2 = ImageDraw.Draw(mask2)
                 if num_ports > 5:
@@ -92,8 +102,7 @@ class WaterTankWidget(QtWidgets.QWidget):
                 current_fill_level2 = int(fill_end_y2 - (self._water_level / self.max_level) * (fill_end_y2 - fill_start_y2))
 
                 water_layer2 = Image.new("RGBA", new_img.size, (0, 0, 0, 0))
-                water_draw2 = ImageDraw.Draw(water_layer2)
-                water_draw2.ellipse([(fill_x_min2, current_fill_level2), (fill_x_max2, fill_end_y2)], fill=(0, 150, 255, 150))
+                water_draw2 = ImageDraw.Draw(water_layer2)                
 
                 new_img = Image.composite(water_layer2, new_img, mask2)
 
@@ -109,6 +118,17 @@ class WaterTankWidget(QtWidgets.QWidget):
             painter.drawText(210, current_fill_level - 40, f"المتبقي: {self.max_level - self._water_level} L")
             painter.setPen(QtGui.QPen(QtGui.QColor(0, 255, 0), 1)) 
             painter.drawText(210, 390, f"الممتلئ: {self._water_level} L")
+
+            # Draw the valve state circle
+            if self.valve_state == "مفتوح":
+                circle_color = QtGui.QColor(0, 255, 0)
+            elif self.valve_state == "مغلق":
+                circle_color = QtGui.QColor(255, 0, 0)
+            else:  # "جاري الفتح" or "جاري الغلق"
+                circle_color = QtGui.QColor(255, 255, 0) if self.toggle_state else QtGui.QColor(255, 0, 0)
+            
+            painter.setBrush(circle_color)
+            painter.drawEllipse(QtCore.QPoint(22, 408), 13, 13)  # Adjust position and size as needed
 
 
 class OperatorInterface(QtWidgets.QWidget):
@@ -128,9 +148,13 @@ class OperatorInterface(QtWidgets.QWidget):
         self.sent_logs = set()
         self.connection_status_label = QtWidgets.QLabel()  
         self.db_connected = self.check_db_connection()
+        self.led_timers = {}  # Dictionary to store timers for each port
         self.init_ui()
         self.update_flowmeter_signal.connect(self.update_flowmeter_readings)
-        self.start_mqtt_thread()                
+        self.start_mqtt_thread()
+        self.timer = QtCore.QTimer(self)  # Create a single QTimer instance
+        self.timer.timeout.connect(self.check_led_timers)
+        self.timer.start(1000)  # Check every second
 
     def check_db_connection(self):
         try:
@@ -267,6 +291,12 @@ class OperatorInterface(QtWidgets.QWidget):
             valve_state_label = QtWidgets.QLabel("حالة المحبس: مغلق")
             valve_state_label.setObjectName("Valve State")
 
+            # Add LED indicator
+            led_indicator = QtWidgets.QLabel()
+            led_indicator.setFixedSize(20, 20)
+            led_indicator.setStyleSheet("background-color: red; border-radius: 10px;")
+            led_indicator.setObjectName("LED Indicator")
+
             if num_ports > 5:
                 truck_number_entry.setFixedSize(80, 30)  
                 receipt_number_entry.setFixedSize(80, 30)
@@ -307,6 +337,7 @@ class OperatorInterface(QtWidgets.QWidget):
                 form_layout.addWidget(water_tank, 6, 0,1,2)
                 form_layout.addWidget(start_button, 7, 0, 1, 2)
                 form_layout.addWidget(stop_button, 8, 0, 1, 2)
+                form_layout.addWidget(led_indicator, 9, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignCenter)
             else :
                 form_layout.addWidget(truck_number_label, 0, 1, QtCore.Qt.AlignmentFlag.AlignRight)
                 form_layout.addWidget(truck_number_entry, 0, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
@@ -320,6 +351,7 @@ class OperatorInterface(QtWidgets.QWidget):
                 form_layout.addWidget(water_tank, 6, 0, 1, 2) 
                 form_layout.addWidget(start_button, 7, 0, 1, 2) 
                 form_layout.addWidget(stop_button, 8, 0, 1, 2)  
+                form_layout.addWidget(led_indicator, 6, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
 
             card_layout.addLayout(form_layout)
             card.setLayout(card_layout)
@@ -366,32 +398,35 @@ class OperatorInterface(QtWidgets.QWidget):
                     self.mqtt_client.publish(f"{port_name}/quantity", quantity)
                     self.mqtt_client.publish(f"{port_name}/state", "start")
                     water_tank.setMaxLevel(float(quantity))  
-                    if self.db_connected:
-                        try:
-                            server_log(int(chanel_truck_number), int(truck_number))
-                            server_log(int(chanel_operator_id), operator_id)
-                            server_log(int(chanel_receipt_number), int(receipt_number))
-                            server_log(int(chanel_required_quantity), quantity)
-                        except (ValueError, ConnectionError, pyodbc.OperationalError) as e:
-                            print(f"Error logging server data: {e}")
-                            self.db_connected = False
-                            self.connection_status_label.setText("غير متصل")
-                            self.connection_status_label.setStyleSheet("color: red;")
-                            insert_offline_data(int(chanel_truck_number), int(truck_number))
-                            insert_offline_data(int(chanel_operator_id), operator_id)
-                            insert_offline_data(int(chanel_receipt_number), int(receipt_number))
-                            insert_offline_data(int(chanel_required_quantity), quantity)
-                    else:
-                        insert_offline_data(int(chanel_truck_number), int(truck_number))
-                        insert_offline_data(int(chanel_operator_id), operator_id)
-                        insert_offline_data(int(chanel_receipt_number), int(receipt_number))
-                        insert_offline_data(int(chanel_required_quantity), quantity)
-                else :
-                        QtWidgets.QMessageBox.critical(self, "خطأ", "المنفذ قيد التعبئة بالفعل")
+                    threading.Thread(target=self.log_server_data, args=(chanel_truck_number, truck_number, chanel_operator_id, operator_id, chanel_receipt_number, receipt_number, chanel_required_quantity, quantity)).start()
+                else:
+                    QtWidgets.QMessageBox.critical(self, "خطأ", "المنفذ قيد التعبئة بالفعل")
             else:
                 QtWidgets.QMessageBox.critical(self, "خطأ", "يرجى ملء جميع الحقول")
         else:
             print(f"Error: get_channel_entry returned None for port_name {port_name}")
+
+    def log_server_data(self, chanel_truck_number, truck_number, chanel_operator_id, operator_id, chanel_receipt_number, receipt_number, chanel_required_quantity, quantity):
+        if self.db_connected:
+            try:
+                server_log(int(chanel_truck_number), int(truck_number))
+                server_log(int(chanel_operator_id), operator_id)
+                server_log(int(chanel_receipt_number), int(receipt_number))
+                server_log(int(chanel_required_quantity), quantity)
+            except (ValueError, ConnectionError, pyodbc.OperationalError) as e:
+                print(f"Error logging server data: {e}")
+                self.db_connected = False
+                self.connection_status_label.setText("غير متصل")
+                self.connection_status_label.setStyleSheet("color: red;")
+                insert_offline_data(int(chanel_truck_number), int(truck_number))
+                insert_offline_data(int(chanel_operator_id), operator_id)
+                insert_offline_data(int(chanel_receipt_number), int(receipt_number))
+                insert_offline_data(int(chanel_required_quantity), quantity)
+        else:
+            insert_offline_data(int(chanel_truck_number), int(truck_number))
+            insert_offline_data(int(chanel_operator_id), operator_id)
+            insert_offline_data(int(chanel_receipt_number), int(receipt_number))
+            insert_offline_data(int(chanel_required_quantity), quantity)
 
     def stop_filling(self, port_name):
         try:
@@ -480,6 +515,30 @@ class OperatorInterface(QtWidgets.QWidget):
                     child.setDisabled(False)
                 break
 
+    def start_led_timer(self, port_name):
+        self.led_timers[port_name] = time.time() + 5  # Set the timer for 10 seconds from now
+
+    def check_led_timers(self):
+        current_time = time.time()
+        for port_name, end_time in list(self.led_timers.items()):
+            if current_time >= end_time:
+                self.set_led_red(port_name)
+                del self.led_timers[port_name]
+            else:
+                self.set_led_green(port_name)
+
+    def set_led_red(self, port_name):
+        card = self.get_card_by_port_name(port_name)
+        if card:
+            led_indicator = card.findChild(QtWidgets.QLabel, "LED Indicator")
+            led_indicator.setStyleSheet("background-color: red; border-radius: 10px;")
+
+    def set_led_green(self, port_name):
+        card = self.get_card_by_port_name(port_name)
+        if card:
+            led_indicator = card.findChild(QtWidgets.QLabel, "LED Indicator")
+            led_indicator.setStyleSheet("background-color: green; border-radius: 10px;")
+
     def on_connect(self, client, userdata, flags, rc):
         print("Connected with result code " + str(rc))
         client.subscribe("#")  
@@ -487,16 +546,16 @@ class OperatorInterface(QtWidgets.QWidget):
     def on_message(self, client, userdata, msg):
         topic = msg.topic
         payload = msg.payload.decode()
+        port_name = topic.split('/')[0]
         if "/flowmeter" in topic:
-            port_name = topic.split('/')[0]
             flow_meter_value = payload
             try:
                 store_port_data_from_mqtt(port_name, flow_meter_value, None)
             except Exception as e:
                 print(f"Error storing flow meter data to database: {e}")
             self.update_flowmeter_signal.emit(port_name, flow_meter_value) 
+            self.start_led_timer(port_name)  # Restart the timer on receiving a message
         elif "/state" in topic:
-            port_name = topic.split('/')[0]
             state = payload
             try:
                 store_port_data_from_mqtt(port_name, None, state)
@@ -528,16 +587,14 @@ class OperatorInterface(QtWidgets.QWidget):
                         self.connection_status_label.setStyleSheet("color: red;")
                         insert_offline_data(int(chanel_actual_quantity), float(actual_quantity))
                 else:
-                    insert_offline_data(int(chanel_actual_quantity), float(actual_quantity))
+                    insert_offline_data(int(chanel_actual_quantity), float(actual_quantity))            
         elif "/update" in topic:
-            port_name = topic.split('/')[0]
             config = ','.join(get_config(port_name))
             self.mqtt_client.publish(f"{port_name}/conf", config)
-            print(config)
+            print(config)            
         elif "/valve_state" in topic:
-            port_name = topic.split('/')[0]
             valve_state = payload
-            self.update_valve_state_label(port_name, valve_state)
+            self.update_valve_state_label(port_name, valve_state)                    
 
     def get_card_by_port_name(self, port_name):
         for i in range(self.port_cards_layout.count()):
@@ -552,7 +609,9 @@ class OperatorInterface(QtWidgets.QWidget):
             initial_value = self.flowmeter_values[port_name]
             if initial_value is not None and initial_value != "":
                 try:
-                    actual_quantity = float(flow_meter_value) - float(initial_value)
+                    flow_meter_value_float = float(flow_meter_value)
+                    initial_value_float = float(initial_value)
+                    actual_quantity = flow_meter_value_float - initial_value_float
                     if actual_quantity < 0:
                         actual_quantity = 0
                     self.update_actual_quantity_label(port_name, actual_quantity)
@@ -560,6 +619,11 @@ class OperatorInterface(QtWidgets.QWidget):
                     self.update_progress_bar(port_name, actual_quantity)
                 except ValueError:
                     print(f"Error parsing flow meter value for port {port_name}: {flow_meter_value}")
+                    self.update_actual_quantity_label(port_name, "العداد غير متصل")
+                    self.update_flowmeter_label(port_name, "العداد غير متصل")
+            else:
+                self.update_actual_quantity_label(port_name, "العداد غير متصل")
+                self.update_flowmeter_label(port_name, "العداد غير متصل")
 
 if __name__ == "__main__":
     import sys

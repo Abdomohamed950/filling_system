@@ -4,7 +4,7 @@
 #include "defines.h"
 #include <FS.h>
 #include <SPIFFS.h>
-#include <WiFiManager.h>  
+#include <WiFiManager.h>
 
 // ------------------------------------memory functions--------------------------------
 void init_spiffs() {
@@ -97,15 +97,20 @@ void flowmeter_reader() {
     int2f int2f_obj;
     int2f_obj.intVal = value;
     flow_meter_value = int2f_obj.f;
-    client.publish((String(truck_id) + "/flowmeter").c_str(), String(value).c_str());
-  }
-  else
+    client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
+  } else
     client.publish((String(truck_id) + "/flowmeter").c_str(), "العداد غير متصل");
+}
+
+void test_reader() {
+  if (is_running)
+    flow_meter_value += random(0, 3);
+  client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
 }
 
 float flow_rate_reader() {
   uint32_t value;
-  result = node.readHoldingRegisters(1999, REG_IN_ROW);  
+  result = node.readHoldingRegisters(1999, REG_IN_ROW);
   if (result == node.ku8MBSuccess) {
     DATA[0] = node.getResponseBuffer(0);
     DATA[1] = node.getResponseBuffer(1);
@@ -127,11 +132,11 @@ void RelayOpenDC(void) {
     static unsigned long last = 0;
     if (millis() - last > 100) {
       last = millis();
-      flowmeter_reader();      
+      flowmeter_reader();
       client.publish((String(truck_id) + "/valve_state").c_str(), "جاري الفتح");
       client.loop();
     }
-  }  
+  }
   digitalWrite(RELAY_OPEN, LOW);
 }
 
@@ -143,7 +148,7 @@ void RelayCloseDC(uint32_t closeTime) {
     static unsigned long lasst = 0;
     if (millis() - lasst > 100) {
       lasst = millis();
-      flowmeter_reader();      
+      flowmeter_reader();
       client.publish((String(truck_id) + "/valve_state").c_str(), "جاري الغلق");
     }
   }
@@ -157,7 +162,7 @@ void setup_wifi() {
   // wifiManager.resetSettings();
 
   wifiManager.setTimeout(180);
-  
+
   if (!wifiManager.autoConnect("ESP32-AP")) {
     Serial.println("Failed to connect and hit timeout");
     delay(3000);
@@ -209,16 +214,14 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
 
     else if (message == "stop") {
-      if (is_running) {
-        if (force_stop)
-          RelayCloseDC(TIME_OPEN_DC+1000);
-        client.publish((String(truck_id) + "/valve_state").c_str(), "مغلق");
-        is_running = false;
-        Serial.println("Truck stopped");
-        logdata += "," + String(flow_meter_value - flow_meter_prev_value);
-        add_string_to_queue(logdata.c_str());
-        print_queue();
-      }
+      if (force_stop)
+        RelayCloseDC(TIME_OPEN_DC + 1000);
+      is_running = false;
+      client.publish((String(truck_id) + "/valve_state").c_str(), "مغلق");
+      Serial.println("Truck stopped");
+      logdata += "," + String(flow_meter_value - flow_meter_prev_value);
+      add_string_to_queue(logdata.c_str());
+      print_queue();
     }
   }
 
@@ -314,9 +317,9 @@ void setup() {
     TIME_OPEN_DC = firstCloseTime + secondCloseTime + thirdCloseTime;
   }
 
-  for (int i = 0; i < 10; i++) 
-    Serial.println("config of " + String(i) + "=\t"+config[i]);
-  Serial.println("time_open_dc =\t"+String(TIME_OPEN_DC));
+  for (int i = 0; i < 10; i++)
+    Serial.println("config of " + String(i) + "=\t" + config[i]);
+  Serial.println("time_open_dc =\t" + String(TIME_OPEN_DC));
 }
 
 void loop() {
@@ -328,26 +331,27 @@ void loop() {
   static unsigned long lastPublishTime = 0;
   if (millis() - lastPublishTime > 100) {
     lastPublishTime = millis();
-    flowmeter_reader();
+    // flowmeter_reader();
+    test_reader();
 
     if (is_running && result == node.ku8MBSuccess) {
       client.publish((String(truck_id) + "/valve_state").c_str(), "مفتوح");
       float FlowRate = flow_rate_reader();
       remain_Quantity = (flow_meter_prev_value + required_Quantity - flow_meter_value);
-      double ExtraWater = (FlowRate / 2.0) * thirdCloseTime/1000;
+      double ExtraWater = (FlowRate / 2.0) * thirdCloseTime / 1000;
 
-      if (remain_Quantity <= float(firstCloseLagV)/1000 && firstCloseStatus == 0) {
+      if (remain_Quantity <= float(firstCloseLagV) / 1000 && firstCloseStatus == 0) {
         RelayCloseDC(firstCloseTime);
         firstCloseStatus = 1;
       }
 
-      else if (remain_Quantity <= float(secondCloseLagV)/1000 && secondCloseStatus == 0) {
+      else if (remain_Quantity <= float(secondCloseLagV) / 1000 && secondCloseStatus == 0) {
         RelayCloseDC(secondCloseTime);
         secondCloseStatus = 1;
       }
 
-      else if (remain_Quantity-ExtraWater/1000 <= 0 && thirdCloseStatus == 0) {
-        RelayCloseDC(thirdCloseTime+1000);
+      else if (remain_Quantity - ExtraWater / 1000 <= 0 && thirdCloseStatus == 0) {
+        RelayCloseDC(thirdCloseTime + 1000);
         thirdCloseStatus = 1;
         force_stop = 0;
         client.publish((String(truck_id) + "/state").c_str(), "stop");
