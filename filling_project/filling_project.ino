@@ -274,8 +274,8 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(RELAY_OPEN, OUTPUT);
   pinMode(RELAY_CLOSE, OUTPUT);
-  pinMode(open_putton, INPUT);
-  pinMode(close_putton, INPUT);
+  pinMode(open_putton, INPUT_PULLUP);
+  pinMode(close_putton, INPUT_PULLUP);
 
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
