@@ -189,11 +189,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println(message);
 
   if (topicStr == String(truck_id) + "/quantity") {
-    required_Quantity = message.toFloat();
-    flow_meter_prev_value = flow_meter_value;
-    Serial.print("Target quantity set to: ");
-    Serial.println(required_Quantity);
-    client.publish((String(truck_id) + "/state").c_str(), "filling");
+    if (result == node.ku8MBSuccess) {
+      required_Quantity = message.toFloat();
+      flow_meter_prev_value = flow_meter_value;
+      Serial.print("Target quantity set to: ");
+      Serial.println(required_Quantity);
+      client.publish((String(truck_id) + "/state").c_str(), "filling");
+    }
   }
 
   else if (topicStr == String(truck_id) + "/logdata")
@@ -272,6 +274,8 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(RELAY_OPEN, OUTPUT);
   pinMode(RELAY_CLOSE, OUTPUT);
+  pinMode(open_putton, INPUT);
+  pinMode(close_putton, INPUT);
 
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
@@ -327,14 +331,26 @@ void loop() {
     reconnect();
   }
   client.loop();
+  if (!digitalRead(open_putton)) {
+    RelayOpenDC();
+    client.publish((String(truck_id) + "/valve_state").c_str(), "مفتوح");
+    while (!digitalRead(open_putton))
+      ;
+  }
+  if (!digitalRead(close_putton)) {
+    RelayCloseDC(TIME_OPEN_DC);
+    client.publish((String(truck_id) + "/valve_state").c_str(), "مغلق");
+    while (!digitalRead(close_putton))
+      ;
+  }
 
   static unsigned long lastPublishTime = 0;
   if (millis() - lastPublishTime > 100) {
     lastPublishTime = millis();
-    // flowmeter_reader();
-    test_reader();
+    flowmeter_reader();
+    // test_reader();
 
-    if (is_running && result == node.ku8MBSuccess) {
+    if (is_running) {
       client.publish((String(truck_id) + "/valve_state").c_str(), "مفتوح");
       float FlowRate = flow_rate_reader();
       remain_Quantity = (flow_meter_prev_value + required_Quantity - flow_meter_value);
@@ -351,7 +367,7 @@ void loop() {
       }
 
       else if (remain_Quantity - ExtraWater / 1000 <= 0 && thirdCloseStatus == 0) {
-        RelayCloseDC(thirdCloseTime + 1000);
+        RelayCloseDC(thirdCloseTime + 2000);
         thirdCloseStatus = 1;
         force_stop = 0;
         client.publish((String(truck_id) + "/state").c_str(), "stop");

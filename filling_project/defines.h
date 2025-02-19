@@ -21,8 +21,8 @@ const char* truck_id = "port1";
 #define TXD2 17
 #define RELAY_OPEN 25
 #define RELAY_CLOSE 26
-#define close_putton 5
-#define open_putton 6
+#define open_putton 18
+#define close_putton 19
 
 typedef union {
   uint32_t intVal;
@@ -51,7 +51,7 @@ float required_Quantity = 0;
 bool is_running = false;
 bool updated = true;
 String logdata = "";
-bool force_stop ;
+bool force_stop =1 ;
 
 //تعريف الopjects
 WiFiClient espClient;

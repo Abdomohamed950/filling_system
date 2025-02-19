@@ -182,7 +182,7 @@ class OperatorInterface(QtWidgets.QWidget):
 
     def init_ui(self):
         self.setWindowTitle(f"نظام تعبئة المياه - المشغل: {self.operator_name}")
-        self.showFullScreen()
+        self.showMaximized()
 
         layout = QtWidgets.QVBoxLayout()
 
