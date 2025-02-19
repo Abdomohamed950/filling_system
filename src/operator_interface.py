@@ -7,6 +7,8 @@ from login_window import LoginWindow
 import pyodbc
 from PIL import Image, ImageDraw
 import numpy as np
+import math
+
 
 class WaterTankWidget(QtWidgets.QWidget):
     def __init__(self, max_level=100):
@@ -29,6 +31,11 @@ class WaterTankWidget(QtWidgets.QWidget):
         self.toggle_timer.timeout.connect(self.toggle_circle_color)
         self.toggle_timer.start(500)  # Toggle every 500ms
 
+        self.rotation_angle = 0  # Add a rotation angle for the circle
+        self.rotation_timer = QtCore.QTimer(self)
+        self.rotation_timer.timeout.connect(self.rotate_circle)
+        self.rotation_timer.start(100)  # Rotate every 100ms
+
     def setWaterLevel(self, level):
         self._water_level = max(0, min(level, self.max_level))
         self.update()  
@@ -50,6 +57,13 @@ class WaterTankWidget(QtWidgets.QWidget):
         if self.valve_state in ["جاري الفتح", "جاري الغلق"]:
             self.toggle_state = not self.toggle_state
             self.update()
+
+    def rotate_circle(self):
+        if self.valve_state == "جاري الفتح":
+            self.rotation_angle = (self.rotation_angle + 10) % 360
+        elif self.valve_state == "جاري الغلق":
+            self.rotation_angle = (self.rotation_angle - 10) % 360
+        self.update()
 
     def paintEvent(self, event):
         ports = get_ports()
@@ -115,9 +129,7 @@ class WaterTankWidget(QtWidgets.QWidget):
             
             painter.setFont(QtGui.QFont("Arial", 10))
             painter.setPen(QtGui.QPen(QtGui.QColor(255, 0, 0), 1))  
-            painter.drawText(210, current_fill_level - 40, f"المتبقي: {self.max_level - self._water_level} L")
-            painter.setPen(QtGui.QPen(QtGui.QColor(0, 255, 0), 1)) 
-            painter.drawText(210, 390, f"الممتلئ: {self._water_level} L")
+            painter.drawText(203, current_fill_level - 20, f"المتبقي: {self.max_level - self._water_level} L")
 
             # Draw the valve state circle
             if self.valve_state == "مفتوح":
@@ -125,10 +137,29 @@ class WaterTankWidget(QtWidgets.QWidget):
             elif self.valve_state == "مغلق":
                 circle_color = QtGui.QColor(255, 0, 0)
             else:  # "جاري الفتح" or "جاري الغلق"
-                circle_color = QtGui.QColor(255, 255, 0) if self.toggle_state else QtGui.QColor(255, 0, 0)
+                circle_color = QtGui.QColor(0, 255, 0) if self.toggle_state else QtGui.QColor(255, 0, 0)
             
+            painter.setBrush(circle_color)            
+            # painter.drawEllipse(QtCore.QPoint(22, 408), 13, 13)  # Adjust position and size as needed
+            # Draw the new circle with spokes
+            center = (22, 408)
+            radius = 13
+            spoke_count = 8
+
             painter.setBrush(circle_color)
-            painter.drawEllipse(QtCore.QPoint(22, 408), 13, 13)  # Adjust position and size as needed
+            painter.setPen(QtGui.QPen(QtGui.QColor("black")))
+            painter.drawEllipse(QtCore.QPoint(center[0], center[1]), radius, radius)
+
+            # Draw spokes with rotation
+            painter.setPen(QtGui.QPen(QtGui.QColor("white"), 2))
+            for i in range(spoke_count):
+                angle = (2 * math.pi / spoke_count) * i + math.radians(self.rotation_angle)
+                x_end = center[0] + int(radius * math.cos(angle))
+                y_end = center[1] + int(radius * math.sin(angle))
+                painter.drawLine(center[0], center[1], x_end, y_end)
+
+                
+            
 
 
 class OperatorInterface(QtWidgets.QWidget):
@@ -161,14 +192,18 @@ class OperatorInterface(QtWidgets.QWidget):
             connection = create_server_connection()
             connection.close()
             self.db_connected = True
-            self.connection_status_label.setText("متصل")
+            self.update_connection_status()
             self.resend_offline_data()  
-            self.connection_status_label.setStyleSheet("color: green;")
         except pyodbc.OperationalError:
             self.db_connected = False
-            self.connection_status_label.setText("غير متصل")
-            self.connection_status_label.setStyleSheet("color: red;")
+            self.update_connection_status()
         return self.db_connected
+
+    def update_connection_status(self):
+        if self.db_connected:
+            self.connection_status_label.setStyleSheet("background-color: green; border-radius: 10px;")
+        else:
+            self.connection_status_label.setStyleSheet("background-color: red; border-radius: 10px;")
 
     def resend_offline_data(self):
         offline_data = get_offline_data()
@@ -197,10 +232,17 @@ class OperatorInterface(QtWidgets.QWidget):
         logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         top_layout.addWidget(logo_label)
 
-        connection_layout = QtWidgets.QVBoxLayout()
-        connection_status_text = QtWidgets.QLabel("حالة الاتصال:")
-        connection_layout.addWidget(connection_status_text)
-        connection_layout.addWidget(self.connection_status_label)
+        connection_layout = QtWidgets.QVBoxLayout()  # Change to QVBoxLayout
+        connection_status_layout = QtWidgets.QHBoxLayout()  # Add a new QHBoxLayout for status text and circle
+        connection_status_text = QtWidgets.QLabel("حالة الاتصال بالسيرفر")
+        connection_status_layout.addWidget(connection_status_text)
+        
+        self.connection_status_label = QtWidgets.QLabel()
+        self.connection_status_label.setFixedSize(7, 7)
+        self.update_connection_status()
+        connection_status_layout.addWidget(self.connection_status_label)
+
+        connection_layout.addLayout(connection_status_layout)  # Add the status layout to the main connection layout
 
         reconnect_button = QtWidgets.QPushButton("اعادة الاتصال", self)
         reconnect_button.clicked.connect(self.check_db_connection)
@@ -228,6 +270,14 @@ class OperatorInterface(QtWidgets.QWidget):
         radio_layout.addWidget(barcode_radio)
         top_layout.addLayout(radio_layout)        
         top_layout.setAlignment(radio_layout, QtCore.Qt.AlignmentFlag.AlignRight)
+
+        # Add second logo to the far right
+        second_logo_label = QtWidgets.QLabel(self)
+        second_logo_pixmap = QtGui.QPixmap("src/logo2.png")  
+        second_logo_pixmap = second_logo_pixmap.scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+        second_logo_label.setPixmap(second_logo_pixmap)
+        second_logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+        top_layout.addWidget(second_logo_label)
 
         layout.addLayout(top_layout)
 
@@ -288,8 +338,8 @@ class OperatorInterface(QtWidgets.QWidget):
             flow_meter_reading_label.setObjectName("Flow Meter Reading")
 
 
-            valve_state_label = QtWidgets.QLabel("حالة المحبس: مغلق")
-            valve_state_label.setObjectName("Valve State")
+            connection_label = QtWidgets.QLabel("حالة اتصال المنفذ")
+            connection_label.setObjectName("connection label")
 
             # Add LED indicator
             led_indicator = QtWidgets.QLabel()
@@ -301,16 +351,18 @@ class OperatorInterface(QtWidgets.QWidget):
                 truck_number_entry.setFixedSize(80, 30)  
                 receipt_number_entry.setFixedSize(80, 30)
                 add_quantity_entry.setFixedSize(80, 30)  
-                actual_quantity_label.setMaximumSize(200, 30)  
-                flow_meter_reading_label.setMaximumSize(200, 30) 
-                valve_state_label.setMaximumSize(200, 30) 
+                actual_quantity_label.setMaximumSize(200, 20)  
+                flow_meter_reading_label.setMaximumSize(200, 20) 
+                connection_label.setMaximumSize(200, 20) 
+                led_indicator.setFixedSize(7, 7)
             else :
                 truck_number_entry.setFixedSize(170, 30)  
                 receipt_number_entry.setFixedSize(170, 30)
                 add_quantity_entry.setFixedSize(170, 30)  
-                actual_quantity_label.setMaximumSize(200, 30)  
-                flow_meter_reading_label.setMaximumSize(200, 30) 
-                valve_state_label.setMaximumSize(200, 30) 
+                actual_quantity_label.setMaximumSize(200, 20)  
+                flow_meter_reading_label.setMaximumSize(200, 20) 
+                connection_label.setMaximumSize(200, 20) 
+                led_indicator.setFixedSize(7, 7)
 
 
             water_tank = WaterTankWidget()
@@ -318,10 +370,10 @@ class OperatorInterface(QtWidgets.QWidget):
 
 
             start_button = QtWidgets.QPushButton("ابدأ")
-            start_button.clicked.connect(lambda _, pn=port_name, aqe=add_quantity_entry, rne=receipt_number_entry, tne=truck_number_entry, wt=water_tank: self.start_filling(pn, aqe, rne, tne, wt))
+            start_button.clicked.connect(lambda _, pn=port_name, aqe=add_quantity_entry, rne=receipt_number_entry, tne=truck_number_entry, wt=water_tank, sb=start_button: self.start_filling(pn, aqe, rne, tne, wt, sb))
 
             stop_button = QtWidgets.QPushButton("توقف")
-            stop_button.clicked.connect(lambda _, pn=port_name: self.stop_filling(pn))
+            stop_button.clicked.connect(lambda _, pn=port_name, sb=stop_button: self.stop_filling(pn, sb))
 
             form_layout = QtWidgets.QGridLayout()
             if num_ports > 5:
@@ -333,11 +385,11 @@ class OperatorInterface(QtWidgets.QWidget):
                 form_layout.addWidget(add_quantity_entry, 2, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
                 form_layout.addWidget(actual_quantity_label, 3,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
                 form_layout.addWidget(flow_meter_reading_label, 4, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(valve_state_label, 5,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
+                form_layout.addWidget(connection_label, 5,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
                 form_layout.addWidget(water_tank, 6, 0,1,2)
                 form_layout.addWidget(start_button, 7, 0, 1, 2)
                 form_layout.addWidget(stop_button, 8, 0, 1, 2)
-                form_layout.addWidget(led_indicator, 9, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignCenter)
+                form_layout.addWidget(led_indicator, 5, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
             else :
                 form_layout.addWidget(truck_number_label, 0, 1, QtCore.Qt.AlignmentFlag.AlignRight)
                 form_layout.addWidget(truck_number_entry, 0, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
@@ -347,11 +399,11 @@ class OperatorInterface(QtWidgets.QWidget):
                 form_layout.addWidget(add_quantity_entry, 2, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
                 form_layout.addWidget(actual_quantity_label, 3,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
                 form_layout.addWidget(flow_meter_reading_label, 4, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(valve_state_label, 5, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight) 
+                form_layout.addWidget(connection_label, 5, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight) 
                 form_layout.addWidget(water_tank, 6, 0, 1, 2) 
                 form_layout.addWidget(start_button, 7, 0, 1, 2) 
                 form_layout.addWidget(stop_button, 8, 0, 1, 2)  
-                form_layout.addWidget(led_indicator, 6, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
+                form_layout.addWidget(led_indicator, 5, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
 
             card_layout.addLayout(form_layout)
             card.setLayout(card_layout)
@@ -373,7 +425,7 @@ class OperatorInterface(QtWidgets.QWidget):
             self.barcode_entry.setEnabled(True)
             self.barcode_entry.setFocus()
 
-    def start_filling(self, port_name, add_quantity_entry, receipt_number_entry, truck_number_entry, water_tank):
+    def start_filling(self, port_name, add_quantity_entry, receipt_number_entry, truck_number_entry, water_tank, start_button):
         try:
             channel_entry = get_channel_entry(port_name)
         except Exception as e:
@@ -405,6 +457,8 @@ class OperatorInterface(QtWidgets.QWidget):
                 QtWidgets.QMessageBox.critical(self, "خطأ", "يرجى ملء جميع الحقول")
         else:
             print(f"Error: get_channel_entry returned None for port_name {port_name}")
+        start_button.setStyleSheet("background-color: yellow")  # Change color to yellow when clicked
+        QtCore.QTimer.singleShot(200, lambda: start_button.setStyleSheet(""))  # Reset color after 200ms
 
     def log_server_data(self, chanel_truck_number, truck_number, chanel_operator_id, operator_id, chanel_receipt_number, receipt_number, chanel_required_quantity, quantity):
         if self.db_connected:
@@ -428,7 +482,7 @@ class OperatorInterface(QtWidgets.QWidget):
             insert_offline_data(int(chanel_receipt_number), int(receipt_number))
             insert_offline_data(int(chanel_required_quantity), quantity)
 
-    def stop_filling(self, port_name):
+    def stop_filling(self, port_name, stop_button):
         try:
             chanel_truck_number, chanel_operator_id, chanel_receipt_number, chanel_required_quantity, chanel_actual_quantity, chanel_flowmeter = get_channel_entry(port_name)
         except Exception as e:
@@ -437,6 +491,8 @@ class OperatorInterface(QtWidgets.QWidget):
 
         if self.mqtt_client:
             self.mqtt_client.publish(f"{port_name}/state", "stop")
+        stop_button.setStyleSheet("background-color: yellow")  # Change color to yellow when clicked
+        QtCore.QTimer.singleShot(200, lambda: stop_button.setStyleSheet(""))  # Reset color after 200ms
 
     def get_actual_quantity(self, port_name):
         return self.actual_quantities.get(port_name, 0)
@@ -482,7 +538,7 @@ class OperatorInterface(QtWidgets.QWidget):
             card = self.port_cards_layout.itemAt(i).widget()
             if card.title() == port_name:
                 valve_state_label = card.findChild(QtWidgets.QLabel, "Valve State")
-                valve_state_label.setText(f"حالة المحبس: {valve_state}")
+                # valve_state_label.setText(f"حالة المحبس: {valve_state}")
                 water_tank = card.findChild(WaterTankWidget, "water_tank")
                 water_tank.setValveState(valve_state)
                 break
