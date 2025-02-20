@@ -3,7 +3,8 @@ const char* ssid = "test";
 const char* password = "test";
 
 // إعدادات MQTT
-const char* mqtt_server = "192.168.1.7";
+const char* mqtt_server = "10.42.0.1";
+// const char* mqtt_server = "192.168.1.7";
 const int mqtt_port = 1883;
 const char* truck_id = "port1";
 
@@ -32,10 +33,11 @@ uint16_t DATA[2];
 
 int firstCloseTime   ;
 int secondCloseTime  ;
-int thirdCloseTime =3000;
+int thirdCloseTime ;
 int firstCloseLagV   ;
 int secondCloseLagV  ;
 int thirdCloseLagV =100;
+int added_time;
 
 int TIME_OPEN_DC ;
 
@@ -66,4 +68,4 @@ ModbusMaster node;
 int write_index = 0; 
 
 
-String config[10];
+String config[12];

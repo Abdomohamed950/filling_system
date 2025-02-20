@@ -217,7 +217,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
     else if (message == "stop") {
       if (force_stop)
-        RelayCloseDC(TIME_OPEN_DC + 1000);
+        RelayCloseDC(TIME_OPEN_DC + added_time);
       is_running = false;
       client.publish((String(truck_id) + "/valve_state").c_str(), "مغلق");
       Serial.println("Truck stopped");
@@ -230,7 +230,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   else if (topicStr == String(truck_id) + "/conf") {
     Serial.print("config set to: ");
     Serial.println(message);
-    splitString(message, ',', config, 10);
+    splitString(message, ',', config, 12);
     updated = false;
   }
 }
@@ -318,10 +318,12 @@ void setup() {
     secondCloseTime = config[7].toInt();
     firstCloseLagV = config[8].toInt();
     secondCloseLagV = config[9].toInt();
+    thirdCloseTime =  config[10].toInt();
+    added_time =  config[11].toInt();
     TIME_OPEN_DC = firstCloseTime + secondCloseTime + thirdCloseTime;
   }
 
-  for (int i = 0; i < 10; i++)
+  for (int i = 0; i < 12; i++)
     Serial.println("config of " + String(i) + "=\t" + config[i]);
   Serial.println("time_open_dc =\t" + String(TIME_OPEN_DC));
 }
@@ -367,7 +369,7 @@ void loop() {
       }
 
       else if (remain_Quantity - ExtraWater / 1000 <= 0 && thirdCloseStatus == 0) {
-        RelayCloseDC(thirdCloseTime + 2000);
+        RelayCloseDC(thirdCloseTime + added_time);
         thirdCloseStatus = 1;
         force_stop = 0;
         client.publish((String(truck_id) + "/state").c_str(), "stop");

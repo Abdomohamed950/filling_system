@@ -133,25 +133,30 @@ class WaterTankWidget(QtWidgets.QWidget):
 
             # Draw the valve state circle
             if self.valve_state == "مفتوح":
-                circle_color = QtGui.QColor(0, 255, 0)
+                circle_color = QtGui.QColor(0, 155, 0)
             elif self.valve_state == "مغلق":
-                circle_color = QtGui.QColor(255, 0, 0)
+                circle_color = QtGui.QColor(155, 0, 0)
             else:  # "جاري الفتح" or "جاري الغلق"
-                circle_color = QtGui.QColor(0, 255, 0) if self.toggle_state else QtGui.QColor(255, 0, 0)
+                circle_color = QtGui.QColor(0, 155, 0) if self.toggle_state else QtGui.QColor(155, 0, 0)
             
-            painter.setBrush(circle_color)            
+            # painter.setBrush(circle_color)            
             # painter.drawEllipse(QtCore.QPoint(22, 408), 13, 13)  # Adjust position and size as needed
             # Draw the new circle with spokes
-            center = (22, 408)
-            radius = 13
-            spoke_count = 8
+            if num_ports > 5:
+                center = (13, 313)
+                radius = 11
+                spoke_count = 8
+            else:
+                center = (22, 408)
+                radius = 13
+                spoke_count = 8
 
-            painter.setBrush(circle_color)
-            painter.setPen(QtGui.QPen(QtGui.QColor("black")))
+            painter.setBrush(QtGui.QColor("silver"))
+            painter.setPen(QtGui.QPen(circle_color))
             painter.drawEllipse(QtCore.QPoint(center[0], center[1]), radius, radius)
 
             # Draw spokes with rotation
-            painter.setPen(QtGui.QPen(QtGui.QColor("white"), 2))
+            painter.setPen(QtGui.QPen(circle_color, 2))
             for i in range(spoke_count):
                 angle = (2 * math.pi / spoke_count) * i + math.radians(self.rotation_angle)
                 x_end = center[0] + int(radius * math.cos(angle))

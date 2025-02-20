@@ -135,6 +135,11 @@ class AdminInterface(QtWidgets.QWidget):
             self.second_close_lag_entry = QtWidgets.QLineEdit()
             self.second_close_lag_entry.setPlaceholderText("Second Close Lag")
 
+            self.third_time_close_entry = QtWidgets.QLineEdit()
+            self.third_time_close_entry.setPlaceholderText("Third Close Time")
+            self.added_time_entry = QtWidgets.QLineEdit()
+            self.added_time_entry.setPlaceholderText("Added Time")
+
             self.dynamic_settings_layout.addWidget(QtWidgets.QLabel("Baudrate:"))
             self.dynamic_settings_layout.addWidget(self.baudrate_list)
             self.dynamic_settings_layout.addWidget(QtWidgets.QLabel("Frame:"))
@@ -147,6 +152,8 @@ class AdminInterface(QtWidgets.QWidget):
             self.dynamic_settings_layout.addWidget(self.second_close_time_entry)
             self.dynamic_settings_layout.addWidget(self.first_close_lag_entry)
             self.dynamic_settings_layout.addWidget(self.second_close_lag_entry)
+            self.dynamic_settings_layout.addWidget(self.third_time_close_entry)
+            self.dynamic_settings_layout.addWidget(self.added_time_entry)
 
         elif mode == "milli ampere":
             # Add milli ampere-specific fields
@@ -355,8 +362,8 @@ class AdminInterface(QtWidgets.QWidget):
 
     def add_port_action(self, dialog, port_name, mode, config):
         if mode == "modbus":
-            baudrate, frame, endian, slave_address, register_address, first_close_time, second_close_time, first_close_lag, second_close_lag = config.split(',')
-            if port_name and baudrate and frame and endian and slave_address and register_address and first_close_time and second_close_time and first_close_lag and second_close_lag:
+            baudrate, frame, endian, slave_address, register_address, first_close_time, second_close_time, first_close_lag, second_close_lag, third_time_close, added_time = config.split(',')
+            if port_name and baudrate and frame and endian and slave_address and register_address and first_close_time and second_close_time and first_close_lag and second_close_lag and third_time_close and added_time:
                 if is_port_name_unique(port_name):
                     result = add_port(port_name, mode, config)
                     QtWidgets.QMessageBox.information(self, "النتيجة", result)
@@ -406,8 +413,10 @@ class AdminInterface(QtWidgets.QWidget):
                 second_close_time = self.second_close_time_entry.text()
                 first_close_lag = self.first_close_lag_entry.text()
                 second_close_lag = self.second_close_lag_entry.text()
-                if port_name and baudrate and frame and endian and slave_address and register_address and first_close_time and second_close_time and first_close_lag and second_close_lag:
-                    result = update_port(port_name, mode, config=f"{baudrate},{frame},{endian},{slave_address},{register_address},{first_close_time},{second_close_time},{first_close_lag},{second_close_lag}")
+                third_time_close = self.third_time_close_entry.text()
+                added_time = self.added_time_entry.text()
+                if port_name and baudrate and frame and endian and slave_address and register_address and first_close_time and second_close_time and first_close_lag and second_close_lag and third_time_close and added_time:
+                    result = update_port(port_name, mode, config=f"{baudrate},{frame},{endian},{slave_address},{register_address},{first_close_time},{second_close_time},{first_close_lag},{second_close_lag},{third_time_close},{added_time}")
                     QtWidgets.QMessageBox.information(self, "النتيجة", result)
                     self.list_ports_action()
                     self.clear_fields()
@@ -456,7 +465,7 @@ class AdminInterface(QtWidgets.QWidget):
             table_layout = QtWidgets.QGridLayout()
             config_labels = config.split(',')
             if mode == "modbus":
-                labels = ["baud rate:", "frame:", "Endian:", "slave id:", "register address:", "firstCloseTime:", "secondCloseTime:", "firstCloseLagV:", "secondCloseLagV:"]
+                labels = ["baud rate:", "frame:", "Endian:", "slave id:", "register address:", "firstCloseTime:", "secondCloseTime:", "firstCloseLagV:", "secondCloseLagV:", "thirdCloseTime:", "addedTime:"]
             elif mode == "milli ampere":
                 labels = ["min value:", "max value:", "resistor value:", "firstCloseTime:", "secondCloseTime:", "firstCloseLagV:", "secondCloseLagV:"]
             elif mode == "pulse":
@@ -612,6 +621,12 @@ class AdminInterface(QtWidgets.QWidget):
             second_close_lag_entry = QtWidgets.QLineEdit(config_values[8] if len(config_values) > 8 else "")
             second_close_lag_entry.setPlaceholderText("secondCloseLagV")
 
+            third_time_close_entry = QtWidgets.QLineEdit(config_values[9] if len(config_values) > 9 else "")
+            third_time_close_entry.setPlaceholderText("thirdCloseTime")
+
+            added_time_entry = QtWidgets.QLineEdit(config_values[10] if len(config_values) > 10 else "")
+            added_time_entry.setPlaceholderText("addedTime")
+
             self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("baud rate:"))
             self.dialog_dynamic_settings_layout.addWidget(baudrate_list)
             self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("frame:"))
@@ -630,6 +645,10 @@ class AdminInterface(QtWidgets.QWidget):
             self.dialog_dynamic_settings_layout.addWidget(first_close_lag_entry)
             self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("secondCloseLagV:"))
             self.dialog_dynamic_settings_layout.addWidget(second_close_lag_entry)
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("thirdCloseTime:"))
+            self.dialog_dynamic_settings_layout.addWidget(third_time_close_entry)
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("addedTime:"))
+            self.dialog_dynamic_settings_layout.addWidget(added_time_entry)
 
         elif mode == "milli ampere":
             min_entry = QtWidgets.QLineEdit(config_values[0] if len(config_values) > 0 else "")
