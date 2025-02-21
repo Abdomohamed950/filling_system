@@ -254,7 +254,7 @@ class OperatorInterface(QtWidgets.QWidget):
         # Add second logo to the far right
         second_logo_label = QtWidgets.QLabel(self)
         second_logo_pixmap = QtGui.QPixmap("src/logo2.png")  
-        second_logo_pixmap = second_logo_pixmap.scaled(130, 130, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+        second_logo_pixmap = second_logo_pixmap.scaled(110, 110, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
         second_logo_label.setPixmap(second_logo_pixmap)
         second_logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
         top_layout.addWidget(second_logo_label)

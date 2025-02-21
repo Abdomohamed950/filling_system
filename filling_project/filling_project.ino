@@ -351,7 +351,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     logdata = message;
 
   else if (topicStr == String(truck_id) + "/reset")
-    ESP.reset();
+    ESP.restart();
 
   else if (topicStr == String(truck_id) + "/state") {
     Serial.print("message set to: ");

@@ -1,12 +1,23 @@
 from PyQt6 import QtCore, QtWidgets
 from database import create_table, add_operator, remove_operator, list_operators, is_password_unique, add_port, remove_port, get_ports, get_logs, update_port, is_port_name_unique, update_operator, get_channel_entries, update_channel_entry, get_channel_entry, get_addresses, update_addresses
 from login_window import LoginWindow  # Import LoginWindow from the new file
+import paho.mqtt.client as mqtt  # Add MQTT import
 
 class AdminInterface(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         create_table()  
         self.init_ui()
+        self.start_mqtt_client()  # Initialize MQTT client
+
+    def start_mqtt_client(self):
+        self.mqtt_client = mqtt.Client()
+        mqtt_address, server_address = get_addresses()
+        try:
+            self.mqtt_client.connect(mqtt_address, 1883, 60)
+        except Exception as e:
+            print(f"Error connecting to MQTT broker: {e}")
+        self.mqtt_client.loop_start()
 
     def init_ui(self):
         self.setWindowTitle("واجهة الإدارة")
