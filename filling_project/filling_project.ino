@@ -4,7 +4,8 @@
 #include "defines.h"
 #include <FS.h>
 #include <SPIFFS.h>
-#include <WiFiManager.h>
+#include <WebServer.h>
+
 
 // ------------------------------------memory functions--------------------------------
 void init_spiffs() {
@@ -156,23 +157,102 @@ void RelayCloseDC(uint32_t closeTime) {
 }
 
 // --------------------------------------wifi function------------------------------
+String readFile(const char* path) {
+    File file = SPIFFS.open(path, "r");
+    if (!file) return "";
+    String content = file.readString();
+    file.close();
+    return content;
+}
+
+// Function to write values
+void writeFile(const char* path, String message) {
+    File file = SPIFFS.open(path, "w");
+    if (file) {
+        file.print(message);
+        file.close();
+    }
+}
+
+
+
+const char* ap_ssid = "ESP32_AP";     // اسم نقطة الوصول عند الفشل
+const char* ap_password = "12345678"; // كلمة مرور نقطة الوصول
+
+WebServer server(80);
+
 void setup_wifi() {
-  WiFiManager wifiManager;
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
 
-  // wifiManager.resetSettings();
+  WiFi.begin(ssid, password);
+  unsigned long startAttemptTime = millis();
 
-  wifiManager.setTimeout(180);
-
-  if (!wifiManager.autoConnect("ESP32-AP")) {
-    Serial.println("Failed to connect and hit timeout");
-    delay(3000);
-    ESP.restart();
+  while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) { // مهلة 10 ثواني
+    Serial.print(".");
+    delay(500);
   }
 
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\nConnected to WiFi");
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("\nFailed to connect! Starting AP mode...");
+    startAPMode();
+    while(1)
+    {
+        server.handleClient();
+    }
+  }
 }
+
+void startAPMode() {
+  WiFi.softAP(ap_ssid, ap_password);
+  Serial.println("Access Point Started!");
+  Serial.print("AP IP Address: ");
+  Serial.println(WiFi.softAPIP());
+
+  server.on("/", handleRoot);
+  server.on("/submit", HTTP_POST, handleFormSubmit);
+  server.begin();
+}
+
+void handleRoot() {
+  server.send(200, "text/html",
+              "<h1>ESP32 Access Point</h1>"
+              "<p>Failed to connect to WiFi. You are now in AP mode.</p>"
+              "<form action=\"/submit\" method=\"POST\">"
+              "user name: <input type=\"text\" name=\"value1\"><br>"
+              "password: <input type=\"text\" name=\"value2\"><br>"
+              "mqtt address: <input type=\"text\" name=\"value3\"><br>"
+              "port name: <input type=\"text\" name=\"value4\"><br>"
+              "<input type=\"submit\" value=\"Submit\">"
+              "</form>");
+}
+
+void handleFormSubmit() {
+  String usser_name = server.arg("value1");
+  String pass = server.arg("value2");
+  String mqtt_address = server.arg("value3");
+  String port_id = server.arg("value4");
+  writeFile("/username.txt", usser_name);
+  writeFile("/password.txt", pass);
+  writeFile("/mqtt_address.txt", mqtt_address);
+  writeFile("/port_id.txt", port_id);
+
+  // Process the values as needed
+  Serial.println("Received values:");
+  Serial.println("usser_name: " + usser_name);
+  Serial.println("pass: " + pass);
+  Serial.println("mqtt_address: " + mqtt_address);
+  Serial.println("port_id: " + port_id);
+
+  server.send(200, "text/html", "<h1>Values received</h1>");
+  ESP.restart();
+}
+
+
 
 // ---------------------------------mqtt functions-------------------------------------
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -270,6 +350,14 @@ void reconnect() {
 // ---------------------------------app begin---------------------------------------
 void setup() {
   Serial.begin(115200);
+  init_spiffs();
+  truck_id = readFile("/port_id.txt");
+  ssid = readFile("/username.txt");
+  password = readFile("/password.txt");
+  mqtt_server = readFile("/mqtt_address.txt");  
+
+  Serial.println(truck_id);
+  // delay(5000);
   setup_wifi();
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(RELAY_OPEN, OUTPUT);
@@ -277,9 +365,8 @@ void setup() {
   pinMode(open_putton, INPUT_PULLUP);
   pinMode(close_putton, INPUT_PULLUP);
 
-  client.setServer(mqtt_server, mqtt_port);
+  client.setServer(mqtt_server.c_str(), mqtt_port);
   client.setCallback(callback);
-  init_spiffs();
   load_index_from_spiffs();
 
   if (!client.connected()) {
@@ -349,8 +436,8 @@ void loop() {
   static unsigned long lastPublishTime = 0;
   if (millis() - lastPublishTime > 100) {
     lastPublishTime = millis();
-    flowmeter_reader();
-    // test_reader();
+    // flowmeter_reader();
+    test_reader();
 
     if (is_running) {
       client.publish((String(truck_id) + "/valve_state").c_str(), "مفتوح");

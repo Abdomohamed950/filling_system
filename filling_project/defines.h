@@ -1,12 +1,9 @@
 // إعدادات الشبكة
-const char* ssid = "test";
-const char* password = "test";
-
-// إعدادات MQTT
-const char* mqtt_server = "10.42.0.1";
-// const char* mqtt_server = "192.168.1.7";
+String ssid = "";
+String password = "";
+String truck_id = "";
+String mqtt_server = "";
 const int mqtt_port = 1883;
-const char* truck_id = "port1";
 
 
 // Modbus إعداد ات
