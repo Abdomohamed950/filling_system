@@ -122,7 +122,7 @@ class WaterTankWidget(QtWidgets.QWidget):
             else:  # "جاري الفتح" or "جاري الغلق"
                 circle_color = QtGui.QColor(0, 155, 0) if self.toggle_state else QtGui.QColor(155, 0, 0)
             
-            center = (int(new_size.width() * 0.08), int(new_size.height() * 0.78))
+            center = (int(new_size.width() * 0.07), int(new_size.height() * 0.78))
             radius = int(new_size.width() * 0.05)
             spoke_count = 8
 
@@ -215,12 +215,12 @@ class OperatorInterface(QtWidgets.QWidget):
         connection_layout = QtWidgets.QVBoxLayout()  # Change to QVBoxLayout
         connection_status_layout = QtWidgets.QHBoxLayout()  # Add a new QHBoxLayout for status text and circle
         connection_status_text = QtWidgets.QLabel("حالة الاتصال بالسيرفر")
-        connection_status_layout.addWidget(connection_status_text)
         
         self.connection_status_label = QtWidgets.QLabel()
         self.connection_status_label.setFixedSize(7, 7)
         self.update_connection_status()
         connection_status_layout.addWidget(self.connection_status_label)
+        connection_status_layout.addWidget(connection_status_text)
 
         connection_layout.addLayout(connection_status_layout)  # Add the status layout to the main connection layout
 
@@ -254,7 +254,7 @@ class OperatorInterface(QtWidgets.QWidget):
         # Add second logo to the far right
         second_logo_label = QtWidgets.QLabel(self)
         second_logo_pixmap = QtGui.QPixmap("src/logo2.png")  
-        second_logo_pixmap = second_logo_pixmap.scaled(150, 150, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+        second_logo_pixmap = second_logo_pixmap.scaled(130, 130, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
         second_logo_label.setPixmap(second_logo_pixmap)
         second_logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
         top_layout.addWidget(second_logo_label)
@@ -324,13 +324,13 @@ class OperatorInterface(QtWidgets.QWidget):
             connection_label.setMaximumHeight(20)
             # Add LED indicator
             led_indicator = QtWidgets.QLabel()
-            led_indicator.setFixedSize(20, 20)
+            led_indicator.setFixedSize(7, 7)
             led_indicator.setStyleSheet("background-color: red; border-radius: 10px;")
             led_indicator.setObjectName("LED Indicator")
 
-            connection_lay = QtWidgets.QVBoxLayout()
-            connection_lay.addWidget(connection_label)
+            connection_lay = QtWidgets.QHBoxLayout()
             connection_lay.addWidget(led_indicator)
+            connection_lay.addWidget(connection_label)
 
             water_tank = WaterTankWidget()
             water_tank.setObjectName("water_tank")            
@@ -351,11 +351,11 @@ class OperatorInterface(QtWidgets.QWidget):
             form_layout.addWidget(add_quantity_entry, 2, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
             form_layout.addWidget(actual_quantity_label, 3,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
             form_layout.addWidget(flow_meter_reading_label, 4, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
-            form_layout.addWidget(connection_label, 5, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight) 
+            form_layout.addLayout(connection_lay, 5, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight) 
             form_layout.addWidget(water_tank, 6, 0, 1, 2) 
             form_layout.addWidget(start_button, 7, 0, 1, 2) 
             form_layout.addWidget(stop_button, 8, 0, 1, 2)  
-            form_layout.addWidget(led_indicator, 5, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
+            # form_layout.addWidget(led_indicator, 5, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
 
             card_layout.addLayout(form_layout)
             card.setLayout(card_layout)

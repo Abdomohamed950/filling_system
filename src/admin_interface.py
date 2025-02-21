@@ -465,7 +465,7 @@ class AdminInterface(QtWidgets.QWidget):
             table_layout = QtWidgets.QGridLayout()
             config_labels = config.split(',')
             if mode == "modbus":
-                labels = ["baud rate:", "frame:", "Endian:", "slave id:", "register address:", "firstCloseTime:", "secondCloseTime:", "firstCloseLagV:", "secondCloseLagV:", "thirdCloseTime:", "addedTime:"]
+                labels = ["baud rate:", "frame:", "Endian:", "slave id:", "register address:", "firstCloseTime:", "secondCloseTime:", "firstCloseLagV:", "secondCloseLagV:", "pid time:", "addedTime:"]
             elif mode == "milli ampere":
                 labels = ["min value:", "max value:", "resistor value:", "firstCloseTime:", "secondCloseTime:", "firstCloseLagV:", "secondCloseLagV:"]
             elif mode == "pulse":
@@ -622,7 +622,7 @@ class AdminInterface(QtWidgets.QWidget):
             second_close_lag_entry.setPlaceholderText("secondCloseLagV")
 
             third_time_close_entry = QtWidgets.QLineEdit(config_values[9] if len(config_values) > 9 else "")
-            third_time_close_entry.setPlaceholderText("thirdCloseTime")
+            third_time_close_entry.setPlaceholderText("pid time")
 
             added_time_entry = QtWidgets.QLineEdit(config_values[10] if len(config_values) > 10 else "")
             added_time_entry.setPlaceholderText("addedTime")
@@ -645,7 +645,7 @@ class AdminInterface(QtWidgets.QWidget):
             self.dialog_dynamic_settings_layout.addWidget(first_close_lag_entry)
             self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("secondCloseLagV:"))
             self.dialog_dynamic_settings_layout.addWidget(second_close_lag_entry)
-            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("thirdCloseTime:"))
+            self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("pid time:"))
             self.dialog_dynamic_settings_layout.addWidget(third_time_close_entry)
             self.dialog_dynamic_settings_layout.addWidget(QtWidgets.QLabel("addedTime:"))
             self.dialog_dynamic_settings_layout.addWidget(added_time_entry)
@@ -783,8 +783,8 @@ class AdminInterface(QtWidgets.QWidget):
                 values = ["غير متوفر"] * 6
 
             for row, (label, value) in enumerate(zip(labels, values)):
-                table_layout.addWidget(QtWidgets.QLabel(label), row, 0)
-                table_layout.addWidget(QtWidgets.QLabel(value), row, 1)
+                table_layout.addWidget(QtWidgets.QLabel(label), row, 1)
+                table_layout.addWidget(QtWidgets.QLabel(value), row, 0)
 
             edit_button = QtWidgets.QPushButton("تعديل")
             edit_button.clicked.connect(lambda _, pn=port_name: self.show_edit_channel_dialog(pn))
