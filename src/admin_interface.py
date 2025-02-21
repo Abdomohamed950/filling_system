@@ -1,20 +1,12 @@
 from PyQt6 import QtCore, QtWidgets
 from database import create_table, add_operator, remove_operator, list_operators, is_password_unique, add_port, remove_port, get_ports, get_logs, update_port, is_port_name_unique, update_operator, get_channel_entries, update_channel_entry, get_channel_entry, get_addresses, update_addresses
 from login_window import LoginWindow  # Import LoginWindow from the new file
-import paho.mqtt.client as mqtt
 
 class AdminInterface(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         create_table()  
         self.init_ui()
-        self.init_mqtt()
-
-    def init_mqtt(self):
-        self.mqtt_client = mqtt.Client()
-        mqtt_address, _ = get_addresses()
-        self.mqtt_client.connect(mqtt_address, 1883, 60)
-        self.mqtt_client.loop_start()
 
     def init_ui(self):
         self.setWindowTitle("واجهة الإدارة")
@@ -277,12 +269,12 @@ class AdminInterface(QtWidgets.QWidget):
             card_layout.addLayout(button_layout)
 
             card.setLayout(card_layout)
-            card.setFixedSize(400, 150)  # Set fixed size for each card
+            card.setMaximumSize(400, 150)  # Set fixed size for each card
             self.operator_cards_layout.addWidget(card, idx // 3, idx % 3)  # Arrange cards in a grid with 5 cards per row
 
         # Add a card for adding a new operator
         add_card = QtWidgets.QGroupBox("إضافة مشغل جديد")
-        card.setFixedSize(400, 150)  # Set fixed size for each card
+        card.setMaximumSize(400, 150)  # Set fixed size for each card
         add_card_layout = QtWidgets.QVBoxLayout()
         add_button = QtWidgets.QPushButton("إضافة مشغل")
         add_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileDialogNewFolder))
@@ -467,7 +459,7 @@ class AdminInterface(QtWidgets.QWidget):
         for idx, port in enumerate(ports):
             port_name, mode, config = port
             card = QtWidgets.QGroupBox(port_name)
-            card.setFixedSize(300, 350)  # Set fixed size for each card
+            card.setMaximumSize(300, 350)  # Set fixed size for each card
             card_layout = QtWidgets.QVBoxLayout()
 
             table_layout = QtWidgets.QGridLayout()
@@ -513,7 +505,7 @@ class AdminInterface(QtWidgets.QWidget):
 
         # Add a card for adding a new port
         add_card = QtWidgets.QGroupBox("إضافة منفذ جديد")
-        add_card.setFixedSize(300, 300)  # Set fixed size for the add card
+        add_card.setMaximumSize(300, 300)  # Set fixed size for the add card
         add_card_layout = QtWidgets.QVBoxLayout()
         add_button = QtWidgets.QPushButton("إضافة منفذ")
         add_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileDialogNewFolder))
@@ -716,7 +708,6 @@ class AdminInterface(QtWidgets.QWidget):
         result = update_port(port_name, mode, config)
         QtWidgets.QMessageBox.information(self, "النتيجة", result)
         self.mqtt_client.publish(f"{port_name}/reset", "1")
-        print("Published reset message")
         self.list_ports_action()
         dialog.accept()
 
@@ -779,7 +770,7 @@ class AdminInterface(QtWidgets.QWidget):
         for idx, port in enumerate(ports):
             port_name, mode, config = port
             card = QtWidgets.QGroupBox(port_name)
-            card.setFixedSize(300, 300)  # Set fixed size for each card
+            card.setMaximumSize(300, 300)  # Set fixed size for each card
             card_layout = QtWidgets.QVBoxLayout()
 
             table_layout = QtWidgets.QGridLayout()

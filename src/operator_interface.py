@@ -352,6 +352,10 @@ class OperatorInterface(QtWidgets.QWidget):
             led_indicator.setStyleSheet("background-color: red; border-radius: 10px;")
             led_indicator.setObjectName("LED Indicator")
 
+            connection_lay = QtWidgets.QVBoxLayout()
+            connection_lay.addWidget(connection_label)
+            connection_lay.addWidget(led_indicator)
+
             if num_ports > 5:
                 truck_number_entry.setFixedSize(80, 30)  
                 receipt_number_entry.setFixedSize(80, 30)
