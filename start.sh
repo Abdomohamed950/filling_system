@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Check if pip is installed, if not, install it
+if ! command -v pip &> /dev/null; then
+    echo "pip not found. Installing pip..."
+    sudo apt-get update
+    sudo apt-get install -y python3-pip
+fi
+
 VENV_DIR="$HOME/venv_filling_system"
 
 if [ ! -d "$VENV_DIR" ]; then
