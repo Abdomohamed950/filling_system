@@ -16,15 +16,10 @@ class WaterTankWidget(QtWidgets.QWidget):
         self.max_level = max_level  
         self._water_level = 0 
         self.valve_state = "مغلق"  # Default valve state
-        self.setMinimumSize(200, 400)  
+        self.setMinimumSize(100, 200)  # Set minimum size to ensure it doesn't get too small
         
         self.tank_image = Image.open('src/tank.png')
-        ports = get_ports()
-        num_ports = len(ports)
-        if num_ports > 5:
-            self.tank_image = self.tank_image.resize((200, 400))
-        else:
-            self.tank_image = self.tank_image.resize((350, 520)) 
+        self.tank_image = self.tank_image.resize((200, 400))  # Default size, will be adjusted in paintEvent
 
         self.toggle_state = False  # Add a toggle state for blinking effect
         self.toggle_timer = QtCore.QTimer(self)
@@ -66,27 +61,22 @@ class WaterTankWidget(QtWidgets.QWidget):
         self.update()
 
     def paintEvent(self, event):
-        ports = get_ports()
-        num_ports = len(ports)
+        new_size = self.size()
+        self.tank_image = self.tank_image.resize((new_size.width(), new_size.height()), Image.Resampling.LANCZOS)
+
         with QtGui.QPainter(self) as painter:
             painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
             new_img = self.tank_image.copy()
             draw = ImageDraw.Draw(new_img, "RGBA")
 
+            fill_start_y = int(new_size.height() * 0.6)
+            fill_end_y = int(new_size.height() * 0.8)
+            fill_x_min = int(new_size.width() * 0.475)
+            fill_x_max = int(new_size.width() * 0.895)
+
             mask = Image.new("L", new_img.size, 0)
             mask_draw = ImageDraw.Draw(mask)
-            if num_ports > 5:
-                fill_start_y = 240 
-                fill_end_y = 315    
-                fill_x_min = 95     
-                fill_x_max = 177
-            else:
-                fill_start_y = 312
-                fill_end_y = 410
-                fill_x_min = 166
-                fill_x_max = 311
-
             mask_draw.ellipse([(fill_x_min, fill_start_y), (fill_x_max, fill_end_y)], fill=255)
 
             current_fill_level = int(fill_end_y - (self._water_level / self.max_level) * (fill_end_y - fill_start_y))
@@ -100,16 +90,10 @@ class WaterTankWidget(QtWidgets.QWidget):
             if self.valve_state in ["مغلق"]:
                 mask2 = Image.new("L", new_img.size, 0)
                 mask_draw2 = ImageDraw.Draw(mask2)
-                if num_ports > 5:
-                    fill_start_y2 = 80
-                    fill_end_y2 = 240   
-                    fill_x_min2 = 95     
-                    fill_x_max2 = 177
-                else:
-                    fill_start_y2 = 115
-                    fill_end_y2 = 310
-                    fill_x_min2 = 166
-                    fill_x_max2 = 311
+                fill_start_y2 = int(new_size.height() * 0.2)
+                fill_end_y2 = int(new_size.height() * 0.6)
+                fill_x_min2 = int(new_size.width() * 0.475)
+                fill_x_max2 = int(new_size.width() * 0.895)
 
                 mask_draw2.ellipse([(fill_x_min2, fill_start_y2), (fill_x_max2, fill_end_y2)], fill=255)
 
@@ -129,9 +113,8 @@ class WaterTankWidget(QtWidgets.QWidget):
             
             painter.setFont(QtGui.QFont("Arial", 10))
             painter.setPen(QtGui.QPen(QtGui.QColor(255, 0, 0), 1))  
-            painter.drawText(203, current_fill_level - 20, f"المتبقي: {self.max_level - self._water_level} L")
+            painter.drawText(180, current_fill_level - 20, f"المتبقي: {self.max_level - self._water_level} L")
 
-            # Draw the valve state circle
             if self.valve_state == "مفتوح":
                 circle_color = QtGui.QColor(0, 155, 0)
             elif self.valve_state == "مغلق":
@@ -139,29 +122,21 @@ class WaterTankWidget(QtWidgets.QWidget):
             else:  # "جاري الفتح" or "جاري الغلق"
                 circle_color = QtGui.QColor(0, 155, 0) if self.toggle_state else QtGui.QColor(155, 0, 0)
             
-            # painter.setBrush(circle_color)            
-            # painter.drawEllipse(QtCore.QPoint(22, 408), 13, 13)  # Adjust position and size as needed
-            # Draw the new circle with spokes
-            if num_ports > 5:
-                center = (13, 313)
-                radius = 11
-                spoke_count = 8
-            else:
-                center = (22, 408)
-                radius = 13
-                spoke_count = 8
+            center = (int(new_size.width() * 0.08), int(new_size.height() * 0.78))
+            radius = int(new_size.width() * 0.05)
+            spoke_count = 8
 
             painter.setBrush(QtGui.QColor("silver"))
             painter.setPen(QtGui.QPen(circle_color))
             painter.drawEllipse(QtCore.QPoint(center[0], center[1]), radius, radius)
 
-            # Draw spokes with rotation
             painter.setPen(QtGui.QPen(circle_color, 2))
             for i in range(spoke_count):
                 angle = (2 * math.pi / spoke_count) * i + math.radians(self.rotation_angle)
                 x_end = center[0] + int(radius * math.cos(angle))
                 y_end = center[1] + int(radius * math.sin(angle))
                 painter.drawLine(center[0], center[1], x_end, y_end)
+
 
                 
             
@@ -255,7 +230,7 @@ class OperatorInterface(QtWidgets.QWidget):
         
         connection_layout_widget = QtWidgets.QWidget()
         connection_layout_widget.setLayout(connection_layout)
-        connection_layout_widget.setFixedSize(200, 100) 
+        connection_layout_widget.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         top_layout.addWidget(connection_layout_widget, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
 
         self.clock_label = QtWidgets.QLabel(self)
@@ -338,14 +313,15 @@ class OperatorInterface(QtWidgets.QWidget):
 
             actual_quantity_label = QtWidgets.QLabel("الكمية الفعلية: 0")
             actual_quantity_label.setObjectName("Actual Quantity")
+            actual_quantity_label.setMaximumHeight(20)
 
             flow_meter_reading_label = QtWidgets.QLabel("قراءة العداد: 0")
             flow_meter_reading_label.setObjectName("Flow Meter Reading")
-
+            flow_meter_reading_label.setMaximumHeight(20)
 
             connection_label = QtWidgets.QLabel("حالة اتصال المنفذ")
             connection_label.setObjectName("connection label")
-
+            connection_label.setMaximumHeight(20)
             # Add LED indicator
             led_indicator = QtWidgets.QLabel()
             led_indicator.setFixedSize(20, 20)
@@ -355,24 +331,6 @@ class OperatorInterface(QtWidgets.QWidget):
             connection_lay = QtWidgets.QVBoxLayout()
             connection_lay.addWidget(connection_label)
             connection_lay.addWidget(led_indicator)
-
-            if num_ports > 5:
-                truck_number_entry.setFixedSize(80, 30)  
-                receipt_number_entry.setFixedSize(80, 30)
-                add_quantity_entry.setFixedSize(80, 30)  
-                actual_quantity_label.setMaximumSize(200, 20)  
-                flow_meter_reading_label.setMaximumSize(200, 20) 
-                connection_label.setMaximumSize(200, 20) 
-                led_indicator.setFixedSize(7, 7)
-            else :
-                truck_number_entry.setFixedSize(170, 30)  
-                receipt_number_entry.setFixedSize(170, 30)
-                add_quantity_entry.setFixedSize(170, 30)  
-                actual_quantity_label.setMaximumSize(200, 20)  
-                flow_meter_reading_label.setMaximumSize(200, 20) 
-                connection_label.setMaximumSize(200, 20) 
-                led_indicator.setFixedSize(7, 7)
-
 
             water_tank = WaterTankWidget()
             water_tank.setObjectName("water_tank")            
@@ -385,43 +343,31 @@ class OperatorInterface(QtWidgets.QWidget):
             stop_button.clicked.connect(lambda _, pn=port_name, sb=stop_button: self.stop_filling(pn, sb))
 
             form_layout = QtWidgets.QGridLayout()
-            if num_ports > 5:
-                form_layout.addWidget(truck_number_label, 0, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(truck_number_entry, 0, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-                form_layout.addWidget(receipt_number_label, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(receipt_number_entry, 1, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-                form_layout.addWidget(target_quantity_label, 2, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(add_quantity_entry, 2, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-                form_layout.addWidget(actual_quantity_label, 3,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(flow_meter_reading_label, 4, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(connection_label, 5,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(water_tank, 6, 0,1,2)
-                form_layout.addWidget(start_button, 7, 0, 1, 2)
-                form_layout.addWidget(stop_button, 8, 0, 1, 2)
-                form_layout.addWidget(led_indicator, 5, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
-            else :
-                form_layout.addWidget(truck_number_label, 0, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(truck_number_entry, 0, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-                form_layout.addWidget(receipt_number_label, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(receipt_number_entry, 1, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-                form_layout.addWidget(target_quantity_label, 2, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(add_quantity_entry, 2, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-                form_layout.addWidget(actual_quantity_label, 3,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(flow_meter_reading_label, 4, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
-                form_layout.addWidget(connection_label, 5, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight) 
-                form_layout.addWidget(water_tank, 6, 0, 1, 2) 
-                form_layout.addWidget(start_button, 7, 0, 1, 2) 
-                form_layout.addWidget(stop_button, 8, 0, 1, 2)  
-                form_layout.addWidget(led_indicator, 5, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
+            form_layout.addWidget(truck_number_label, 0, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+            form_layout.addWidget(truck_number_entry, 0, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+            form_layout.addWidget(receipt_number_label, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+            form_layout.addWidget(receipt_number_entry, 1, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+            form_layout.addWidget(target_quantity_label, 2, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+            form_layout.addWidget(add_quantity_entry, 2, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+            form_layout.addWidget(actual_quantity_label, 3,0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
+            form_layout.addWidget(flow_meter_reading_label, 4, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight)
+            form_layout.addWidget(connection_label, 5, 0,1,2, QtCore.Qt.AlignmentFlag.AlignRight) 
+            form_layout.addWidget(water_tank, 6, 0, 1, 2) 
+            form_layout.addWidget(start_button, 7, 0, 1, 2) 
+            form_layout.addWidget(stop_button, 8, 0, 1, 2)  
+            form_layout.addWidget(led_indicator, 5, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
 
             card_layout.addLayout(form_layout)
             card.setLayout(card_layout)
-            if num_ports > 5:
-                card.setFixedSize(210, 700) 
-                self.port_cards_layout.addWidget(card, idx // 8, idx % 8) 
-            else:
-                card.setFixedSize(350, 800) 
-                self.port_cards_layout.addWidget(card, idx // 5, idx % 5) 
+            card.setMaximumSize(350, 900)  # العرض الأقصى 400 بكسل والارتفاع الأقصى 600 بكسل
+            card.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
+            self.port_cards_layout.addWidget(card, idx // 8, idx % 8)
+
+            for i in range(num_ports):
+                self.port_cards_layout.setColumnStretch(i, 1)
+            for i in range((num_ports + 7) // 8):
+                self.port_cards_layout.setRowStretch(i, 1)
+
 
 
     def change_mode(self, mode):
