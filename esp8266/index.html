@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body { 
+    font-family: Arial, sans-serif; 
+    text-align: center; 
+    background-color: #121212; 
+    color: #ffffff; 
+    padding: 20px; 
+    border-radius: 10px; 
+}
+h1 { color: #ffffff; }
+form { 
+    display: inline-block; 
+    margin-top: 20px; 
+    background-color: #1e1e1e; 
+    padding: 20px; 
+    border-radius: 10px; 
+    text-align: left; 
+}
+form div {
+    margin-bottom: 10px;
+}
+label {
+    display: inline-block;
+    width: 120px;
+    text-align: right;
+    margin-right: 10px;
+}
+input[type='text'] { 
+    padding: 10px; 
+    margin: 5px; 
+    background-color: #333333; 
+    color: #ffffff; 
+    border: 1px solid #555555; 
+    width: 200px;
+}
+input[type='submit'] { 
+    padding: 10px; 
+    margin: 5px auto; 
+    display: block; 
+    background-color: #4CAF50; 
+    color: white; 
+    border: none; 
+    cursor: pointer; 
+    width: 80%;
+    border-radius: 7px;
+}
+input[type='submit']:hover { 
+    background-color: #45a049; 
+}
+</style>
+</head>
+<body>
+<h1>HYPER SCADA</h1>
+<p>filling system</p>
+<form action="/submit" method="POST">
+    <div>
+        <label for="value1">user name:</label>
+        <input type="text" id="value1" name="value1">
+    </div>
+    <div>
+        <label for="value2">password:</label>
+        <input type="text" id="value2" name="value2">
+    </div>
+    <div>
+        <label for="value3">mqtt address:</label>
+        <input type="text" id="value3" name="value3">
+    </div>
+    <div>
+        <label for="value4">port name:</label>
+        <input type="text" id="value4" name="value4">
+    </div>
+    <input type="submit" value="Submit">
+</form>
+</body>
+</html>

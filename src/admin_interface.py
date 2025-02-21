@@ -1,12 +1,20 @@
 from PyQt6 import QtCore, QtWidgets
 from database import create_table, add_operator, remove_operator, list_operators, is_password_unique, add_port, remove_port, get_ports, get_logs, update_port, is_port_name_unique, update_operator, get_channel_entries, update_channel_entry, get_channel_entry, get_addresses, update_addresses
 from login_window import LoginWindow  # Import LoginWindow from the new file
+import paho.mqtt.client as mqtt
 
 class AdminInterface(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         create_table()  
         self.init_ui()
+        self.init_mqtt()
+
+    def init_mqtt(self):
+        self.mqtt_client = mqtt.Client()
+        mqtt_address, _ = get_addresses()
+        self.mqtt_client.connect(mqtt_address, 1883, 60)
+        self.mqtt_client.loop_start()
 
     def init_ui(self):
         self.setWindowTitle("واجهة الإدارة")
@@ -674,11 +682,7 @@ class AdminInterface(QtWidgets.QWidget):
 
             self.dialog_dynamic_settings_layout.addWidget(min_entry)
             self.dialog_dynamic_settings_layout.addWidget(max_entry)
-            self.dialog_dynamic_settings_layout.addWidget(resistor_value_entry)
-            self.dialog_dynamic_settings_layout.addWidget(first_close_time_entry)
-            self.dialog_dynamic_settings_layout.addWidget(second_close_time_entry)
-            self.dialog_dynamic_settings_layout.addWidget(first_close_lag_entry)
-            self.dialog_dynamic_settings_layout.addWidget(second_close_lag_entry)
+            self.dialog_dynamic_settings_layout.addWidget(resistor_value_entry)            
 
         elif mode == "pulse":
             liter_per_pulse_entry = QtWidgets.QLineEdit(config_values[0] if len(config_values) > 0 else "")
@@ -696,11 +700,7 @@ class AdminInterface(QtWidgets.QWidget):
             second_close_lag_entry = QtWidgets.QLineEdit(config_values[4] if len(config_values) > 4 else "")
             second_close_lag_entry.setPlaceholderText("secondCloseLagV")
 
-            self.dialog_dynamic_settings_layout.addWidget(liter_per_pulse_entry)
-            self.dialog_dynamic_settings_layout.addWidget(first_close_time_entry)
-            self.dialog_dynamic_settings_layout.addWidget(second_close_time_entry)
-            self.dialog_dynamic_settings_layout.addWidget(first_close_lag_entry)
-            self.dialog_dynamic_settings_layout.addWidget(second_close_lag_entry)
+            self.dialog_dynamic_settings_layout.addWidget(liter_per_pulse_entry)            
 
     def get_dialog_config(self):
         config = []
@@ -715,6 +715,8 @@ class AdminInterface(QtWidgets.QWidget):
     def save_port_changes(self, dialog, port_name, mode, config):
         result = update_port(port_name, mode, config)
         QtWidgets.QMessageBox.information(self, "النتيجة", result)
+        self.mqtt_client.publish(f"{port_name}/reset", "1")
+        print("Published reset message")
         self.list_ports_action()
         dialog.accept()
 

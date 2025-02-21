@@ -10,11 +10,7 @@ const int mqtt_port = 1883;
 
 #define MAX485_DE 32
 #define MAX485_RE_NEG 33
-#define SLAVE_ID 1
-#define SLAVE_ADDRESS_REG_STR_RNG 2003
 #define REG_IN_ROW 2
-#define POLL_TIMEOUT_MS 100
-#define SERIAL_MODBUS_BAUD_RATE 9600
 #define RXD2 16
 #define TXD2 17
 #define RELAY_OPEN 25

@@ -176,8 +176,8 @@ void writeFile(const char* path, String message) {
 
 
 
-const char* ap_ssid = "ESP32_AP";     // اسم نقطة الوصول عند الفشل
-const char* ap_password = "12345678"; // كلمة مرور نقطة الوصول
+const char* ap_ssid = "ESP32_AP";   
+const char* ap_password = "12345678";
 
 WebServer server(80);
 
@@ -188,7 +188,7 @@ void setup_wifi() {
   WiFi.begin(ssid, password);
   unsigned long startAttemptTime = millis();
 
-  while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) { // مهلة 10 ثواني
+  while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) {
     Serial.print(".");
     delay(500);
   }
@@ -350,6 +350,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
   else if (topicStr == String(truck_id) + "/logdata")
     logdata = message;
 
+  else if (topicStr == String(truck_id) + "/reset")
+    ESP.reset();
+
   else if (topicStr == String(truck_id) + "/state") {
     Serial.print("message set to: ");
     Serial.println(message);
@@ -407,6 +410,7 @@ void reconnect() {
       client.subscribe((String(truck_id) + "/refresh").c_str());
       client.subscribe((String(truck_id) + "/logdata").c_str());
       client.subscribe((String(truck_id) + "/conf").c_str());
+      client.subscribe((String(truck_id) + "/reset").c_str());
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -505,8 +509,8 @@ void loop() {
   static unsigned long lastPublishTime = 0;
   if (millis() - lastPublishTime > 100) {
     lastPublishTime = millis();
-    // flowmeter_reader();
-    test_reader();
+    flowmeter_reader();
+    // test_reader();
 
     if (is_running) {
       client.publish((String(truck_id) + "/valve_state").c_str(), "مفتوح");
