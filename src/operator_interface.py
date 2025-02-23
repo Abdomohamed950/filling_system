@@ -372,13 +372,16 @@ class OperatorInterface(QtWidgets.QWidget):
 
     def change_mode(self, mode):
         self.mode = mode
-        if mode == "manual":
-            self.quantity_entry.setEnabled(True)
-            self.barcode_entry.setEnabled(False)
-        elif mode == "barcode":
-            self.quantity_entry.setEnabled(False)
-            self.barcode_entry.setEnabled(True)
-            self.barcode_entry.setFocus()
+        for i in range(self.port_cards_layout.count()):
+            card = self.port_cards_layout.itemAt(i).widget()
+            receipt_number_entry = card.findChild(QtWidgets.QLineEdit, "receipt_number_entry")
+            add_quantity_entry = card.findChild(QtWidgets.QLineEdit, "add_quantity_entry")
+            if mode == "manual":
+                receipt_number_entry.setEnabled(True)
+                add_quantity_entry.setEnabled(True)
+            elif mode == "barcode":
+                receipt_number_entry.setEnabled(False)
+                add_quantity_entry.setEnabled(False)
 
     def start_filling(self, port_name, add_quantity_entry, receipt_number_entry, truck_number_entry, water_tank, start_button):
         try:
