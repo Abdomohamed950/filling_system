@@ -68,7 +68,7 @@ bool isButtonPressed = false;
 unsigned long pressStartTime = 0;
 
 bool offline = false;
-int litter =1;
+int litter =1000;
 
 
 
@@ -97,4 +97,4 @@ ModbusMaster node;
 int write_index = 0; 
 
 
-String config[12];
+String config[13];

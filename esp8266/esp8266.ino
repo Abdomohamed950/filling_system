@@ -108,7 +108,7 @@ void test_reader() {
 
 float flow_rate_reader() {
   uint32_t value;
-  result = node.readHoldingRegisters(1999, REG_IN_ROW);
+  result = node.readHoldingRegisters(config[12].toInt(), REG_IN_ROW);
   if (result == node.ku8MBSuccess) {
     DATA[0] = node.getResponseBuffer(0);
     DATA[1] = node.getResponseBuffer(1);
@@ -123,7 +123,7 @@ float flow_rate_reader() {
 }
 
 // ------------------------------------valve functions-------------------------------
-void RelayOpenDC(void) {  
+void RelayOpenDC(void) {
   digitalWrite(RELAY_CLOSE, LOW);
   digitalWrite(RELAY_OPEN, HIGH);
   unsigned long td = millis();
@@ -144,7 +144,7 @@ void RelayOpenDC(void) {
   digitalWrite(RELAY_OPEN, LOW);
 }
 
-void RelayCloseDC(uint32_t closeTime) {  
+void RelayCloseDC(uint32_t closeTime) {
   digitalWrite(RELAY_OPEN, LOW);
   digitalWrite(RELAY_CLOSE, HIGH);
   unsigned long td = millis();
@@ -359,7 +359,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 
   else if (topicStr == String(truck_id) + "/conf") {
-    splitString(message, ',', config, 12);
+    splitString(message, ',', config, 13);
     updated = false;
   }
 }
@@ -536,37 +536,24 @@ void if_long_press() {
 
 
 
-void measureWaterFlow() {
-  int samples = 10;    // عدد القراءات لأخذ متوسط
-  float adcSum = 0.0;  // مجموع القراءات من المستشعر
+float measureWaterFlow() {
+  int samples = 10;
+  float adcSum = 0.0;
   float adcMean, mV, current_mA, flowRate;
 
-  // أخذ عدة قراءات لحساب المتوسط
   for (int i = 0; i < samples; i++) {
     adcSum += analogRead(FLOW_SENSOR_PIN);
-    delayMicroseconds(100);  // تأخير بسيط بين القراءات
+    delayMicroseconds(100);
   }
 
-  // حساب متوسط القراءة من ADC
   adcMean = adcSum / samples;
-
-  // تحويل القراءة الرقمية إلى جهد (mV)
   mV = (adcMean / ADC_RESOLUTION) * V_REF;
-
-  // حساب التيار المار في المستشعر بناءً على قيمة المقاومة
   current_mA = mV / RESISTANCE_OHM;
-
-  // التأكد من أن التيار لا يقل عن 4mA
   current_mA = (current_mA >= MIN_MA) ? current_mA : MIN_MA;
-
-  // تحويل التيار إلى معدل تدفق المياه باستخدام المعايرة (بين 4mA و 20mA)
-  flowRate = map_ranges(current_mA, MIN_MA, MAX_MA, MIN_FLOW, MAX_FLOW);
+  flowRate = map(current_mA, MIN_MA, MAX_MA, MIN_FLOW, MAX_FLOW);
+  return flowRate;
 }
 
-// دالة لضبط القيم بين النطاقات (مشابهة لدالة map في أردوينو)
-float map_ranges(float x, float in_min, float in_max, float out_min, float out_max) {
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
 
 
 
@@ -656,8 +643,8 @@ void setup() {
     secondCloseLagV = config[9].toInt();
     thirdCloseTime = config[10].toInt();
     added_time = config[11].toInt();
-    TIME_OPEN_DC = firstCloseTime + secondCloseTime + thirdCloseTime;
-    while (1) {
+    TIME_OPEN_DC = firstCloseTime + secondCloseTime + thirdCloseTime;    
+    while (1) {      
       ESP.wdtFeed();
       yield();
       modbus_loop();
@@ -717,16 +704,12 @@ void modbus_loop() {
   if (millis() - lastPublishTime > 100) {
     lastPublishTime = millis();
     flowmeter_reader();
-    client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());    
+    client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
     if (is_running) {
       // flow_meter_value += random(0, 3);
       client.publish((String(truck_id) + "/valve_state").c_str(), "مفتوح");
       float FlowRate = flow_rate_reader();
       remain_Quantity = (flow_meter_prev_value + required_Quantity - flow_meter_value);
-      Serial.print("remain_Quantity = ");
-      Serial.print(remain_Quantity);
-      Serial.print("required_Quantity =");
-      Serial.println(required_Quantity);
       double ExtraWater = (FlowRate / 2.0) * thirdCloseTime / litter;
       if (remain_Quantity <= float(firstCloseLagV) / litter && firstCloseStatus == 0) {
         RelayCloseDC(firstCloseTime);
@@ -748,6 +731,27 @@ void pulse_loop() {
 }
 
 void MA_loop() {
+  if_long_press();
+
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
+  static unsigned long lastPublishTime = 0;
+  if (millis() - lastPublishTime > 100) {
+    lastPublishTime = millis();
+    if (is_running) {
+      client.publish((String(truck_id) + "/valve_state").c_str(), "مفتوح");
+      float FlowRate = measureWaterFlow();
+      double ExtraWater = (FlowRate / 2.0) * thirdCloseTime / litter;
+      if (remain_Quantity - ExtraWater / litter <= 0 && thirdCloseStatus == 0) {
+        RelayCloseDC(thirdCloseTime + added_time);
+        thirdCloseStatus = 1;
+        force_stop = 0;
+        client.publish((String(truck_id) + "/state").c_str(), "stop");
+      }
+    }
+  }
 }
 
 void offline_loop() {
