@@ -5,8 +5,7 @@ class LoginWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Login")
-        self.setGeometry(100, 100, 300, 200)
-        self.center()
+        self.resize(400, 300)  # Set a larger size for the login window
 
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -35,12 +34,6 @@ class LoginWindow(QMainWindow):
         self.central_widget.setLayout(layout)
 
         self.password_entry.returnPressed.connect(self.login)
-
-    def center(self):
-        qr = self.frameGeometry()
-        cp = self.screen().availableGeometry().center()
-        qr.moveCenter(cp)
-        self.move(qr.topLeft())
 
     def login(self):
         from authenticate import authenticate  # Import authenticate function here to avoid circular import

@@ -404,7 +404,7 @@ class OperatorInterface(QtWidgets.QWidget):
                         log_action("station_name", port_name, self.operator_name, truck_number, receipt_number, quantity, None, None, timestamp, None)
                     except Exception as e:
                         print(f"Error logging action to database: {e}")
-                    self.mqtt_client.publish(f"{port_name}/logdata", operator_id + "," + truck_number + "," + receipt_number + "," + quantity + "," + timestamp)
+                    # self.mqtt_client.publish(f"{port_name}/logdata", operator_id + "," + truck_number + "," + receipt_number + "," + quantity + "," + timestamp)
                     self.mqtt_client.publish(f"{port_name}/quantity", quantity)
                     self.mqtt_client.publish(f"{port_name}/state", "start")
                     water_tank.setMaxLevel(float(quantity))  
@@ -530,7 +530,7 @@ class OperatorInterface(QtWidgets.QWidget):
                 break
 
     def start_led_timer(self, port_name):
-        self.led_timers[port_name] = time.time() + 5  # Set the timer for 10 seconds from now
+        self.led_timers[port_name] = time.time() + 10  # Set the timer for 10 seconds from now
 
     def check_led_timers(self):
         current_time = time.time()
