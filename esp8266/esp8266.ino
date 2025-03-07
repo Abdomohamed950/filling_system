@@ -703,8 +703,7 @@ void modbus_loop() {
   static unsigned long lastPublishTime = 0;
   if (millis() - lastPublishTime > 100) {
     lastPublishTime = millis();
-    flowmeter_reader();
-    client.publish((String(truck_id) + "/flowmeter").c_str(), String(flow_meter_value).c_str());
+    flowmeter_reader();    
     if (is_running) {
       // flow_meter_value += random(0, 3);
       client.publish((String(truck_id) + "/valve_state").c_str(), "مفتوح");
